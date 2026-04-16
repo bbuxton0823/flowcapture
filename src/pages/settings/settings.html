@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FlowCapture — Settings</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="topbar-left">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="3"/>
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+        </svg>
+        <div>
+          <h1>FlowCapture Settings</h1>
+          <p class="subtitle">API keys and integrations — stored locally on your machine only</p>
+        </div>
+      </div>
+      <button id="backBtn" class="btn btn-outline">Done</button>
+    </header>
+
+    <main class="container">
+
+      <!-- Privacy Notice -->
+      <div class="banner banner-info">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <div>
+          <strong>Your keys never leave this browser.</strong>
+          API keys are stored in <code>chrome.storage.local</code> on this machine only — never synced to Google account, never sent to FlowCapture servers, never shared with teammates. Each PCO supplies their own keys.
+        </div>
+      </div>
+
+      <!-- ElevenLabs Section -->
+      <section class="card">
+        <div class="card-header">
+          <h2>
+            <svg class="provider-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+            ElevenLabs (AI Voiceover)
+          </h2>
+          <span id="elStatus" class="status-pill">Not configured</span>
+        </div>
+
+        <p class="hint">
+          Generates professional AI narration for your SOP videos. Get a free API key at
+          <a href="https://elevenlabs.io" target="_blank">elevenlabs.io</a> → Profile → API Keys.
+        </p>
+
+        <div class="field">
+          <label for="elApiKey">API Key</label>
+          <input type="password" id="elApiKey" placeholder="xi_xxxxxxxxxxxxxxxx..." autocomplete="off">
+          <button class="reveal-btn" data-target="elApiKey" title="Show/hide">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+
+        <div class="field">
+          <label for="elDefaultVoice">Default Voice</label>
+          <select id="elDefaultVoice">
+            <option value="">Load voices to pick one...</option>
+          </select>
+          <button id="elLoadVoicesBtn" class="btn btn-outline btn-sm">Load Voices</button>
+        </div>
+
+        <div class="field">
+          <label for="elDefaultModel">Default Model</label>
+          <select id="elDefaultModel">
+            <option value="eleven_multilingual_v2">Multilingual v2 (best quality)</option>
+            <option value="eleven_v3">v3 (most expressive — 70+ languages)</option>
+            <option value="eleven_flash_v2_5">Flash v2.5 (fastest, ~75ms latency)</option>
+            <option value="eleven_monolingual_v1">Monolingual v1 (legacy)</option>
+          </select>
+        </div>
+
+        <div class="actions">
+          <button id="elTestBtn" class="btn btn-primary">Test Connection</button>
+          <button id="elClearBtn" class="btn btn-text">Clear ElevenLabs Settings</button>
+        </div>
+      </section>
+
+      <!-- YouTube Section -->
+      <section class="card">
+        <div class="card-header">
+          <h2>
+            <svg class="provider-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22.54 6.42a2.78 2.78 0 00-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 00-1.94 2A29 29 0 001 11.75a29 29 0 00.46 5.33A2.78 2.78 0 003.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 001.94-2 29 29 0 00.46-5.25 29 29 0 00-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg>
+            YouTube (Publish Videos)
+          </h2>
+          <span id="ytStatus" class="status-pill">Not authorized</span>
+        </div>
+
+        <p class="hint">
+          One-click upload of generated MP4s to YouTube as <strong>unlisted</strong> videos. The embed link is then pasted into Yardi Aspire.
+        </p>
+
+        <details class="howto">
+          <summary>How to set up YouTube credentials (one-time, ~5 min)</summary>
+          <ol>
+            <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a> → Create Project → "FlowCapture-HACSM"</li>
+            <li>Enable the <strong>YouTube Data API v3</strong> (APIs &amp; Services → Library)</li>
+            <li>OAuth consent screen → External → fill required fields → add scope <code>youtube.upload</code></li>
+            <li>Credentials → Create OAuth client ID → <strong>Web application</strong></li>
+            <li>Authorized redirect URI: <code id="ytRedirectUri" class="copyable">loading...</code> <button class="copy-btn" data-copy="ytRedirectUri">Copy</button></li>
+            <li>Paste the Client ID and Client Secret below</li>
+            <li>Click "Authorize YouTube" — sign in with the HACSM YouTube channel owner's Google account</li>
+          </ol>
+        </details>
+
+        <div class="field">
+          <label for="ytClientId">OAuth Client ID</label>
+          <input type="text" id="ytClientId" placeholder="123...apps.googleusercontent.com" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <label for="ytClientSecret">OAuth Client Secret</label>
+          <input type="password" id="ytClientSecret" placeholder="GOCSPX-..." autocomplete="off">
+          <button class="reveal-btn" data-target="ytClientSecret" title="Show/hide">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+
+        <div class="actions">
+          <button id="ytAuthBtn" class="btn btn-primary">Authorize YouTube</button>
+          <button id="ytTestBtn" class="btn btn-outline">Test Connection</button>
+          <button id="ytClearBtn" class="btn btn-text">Disconnect YouTube</button>
+        </div>
+
+        <div id="ytAuthStatus" class="status-msg"></div>
+      </section>
+
+      <!-- Vimeo Section -->
+      <section class="card">
+        <div class="card-header">
+          <h2>
+            <svg class="provider-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            Vimeo (Publish Videos)
+          </h2>
+          <span id="vmStatus" class="status-pill">Not configured</span>
+        </div>
+
+        <p class="hint">
+          Alternative to YouTube — useful if HACSM IT prefers Vimeo. Generates the same embed link for Aspire.
+        </p>
+
+        <details class="howto">
+          <summary>How to get a Vimeo access token (one-time, ~3 min)</summary>
+          <ol>
+            <li>Go to <a href="https://developer.vimeo.com/apps" target="_blank">developer.vimeo.com/apps</a> → Create App</li>
+            <li>App name: "FlowCapture-HACSM"</li>
+            <li>Click <strong>Generate Personal Access Token</strong></li>
+            <li>Check scopes: <code>upload</code>, <code>edit</code>, <code>delete</code>, <code>video_files</code>, <code>private</code>, <code>public</code></li>
+            <li>Copy the token and paste below</li>
+            <li>Note: requires Vimeo Plus or higher to upload videos</li>
+          </ol>
+        </details>
+
+        <div class="field">
+          <label for="vmToken">Personal Access Token</label>
+          <input type="password" id="vmToken" placeholder="Paste Vimeo PAT here" autocomplete="off">
+          <button class="reveal-btn" data-target="vmToken" title="Show/hide">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+
+        <div class="actions">
+          <button id="vmTestBtn" class="btn btn-primary">Test Connection</button>
+          <button id="vmClearBtn" class="btn btn-text">Clear Vimeo Settings</button>
+        </div>
+      </section>
+
+      <!-- Defaults Section -->
+      <section class="card">
+        <div class="card-header">
+          <h2>
+            <svg class="provider-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+            Publish Defaults
+          </h2>
+        </div>
+
+        <div class="field">
+          <label for="defaultPrivacy">Default Video Privacy</label>
+          <select id="defaultPrivacy">
+            <option value="unlisted">Unlisted (recommended for Aspire embeds)</option>
+            <option value="private">Private (only signed-in viewers)</option>
+            <option value="public">Public</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- Danger Zone -->
+      <section class="card card-danger">
+        <h2>Danger Zone</h2>
+        <p class="hint">Wipe all stored API keys and tokens. You'll need to re-authorize everything.</p>
+        <button id="wipeAllBtn" class="btn btn-danger">Wipe All Settings</button>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <script src="../../shared/settings-store.js"></script>
+  <script src="../../shared/youtube-uploader.js"></script>
+  <script src="../../shared/vimeo-uploader.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowCapture - Generate Video</title>
+  <link rel="stylesheet" href="video.css">
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="topbar-left">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="3"/>
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+        </svg>
+        <h1 class="page-title">Generate Instructional Video</h1>
+      </div>
+      <div class="topbar-actions">
+        <button id="backBtn" class="btn btn-outline">Back to Editor</button>
+      </div>
+    </header>
+
+    <div class="video-layout">
+      <!-- Left: Preview & Controls -->
+      <div class="preview-panel">
+        <div class="canvas-wrapper">
+          <canvas id="videoCanvas" width="1280" height="720"></canvas>
+          <div class="canvas-overlay" id="canvasOverlay">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5">
+              <polygon points="5 3 19 12 5 21"/>
+            </svg>
+            <p>Configure settings and click "Generate Video"</p>
+          </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-section" id="progressSection" style="display:none">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <p class="progress-text" id="progressText">Preparing...</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+          <button id="generateBtn" class="btn btn-primary btn-lg">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21"/>
+            </svg>
+            Generate Video
+          </button>
+          <button id="previewBtn" class="btn btn-outline">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16" fill="currentColor"/>
+            </svg>
+            Preview Step
+          </button>
+          <button id="downloadBtn" class="btn btn-success" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download MP4
+          </button>
+          <button id="downloadZipBtn" class="btn btn-bundle" disabled title="Download video + captions (SRT/VTT) + chapter markers in one ZIP">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download Bundle (ZIP)
+          </button>
+        </div>
+
+        <!-- Publish to YouTube / Vimeo (v1.5) -->
+        <div class="publish-section" id="publishSection" style="display:none">
+          <div class="publish-header">
+            <h3>Publish for Yardi Aspire</h3>
+            <p class="publish-hint">Upload directly to YouTube (unlisted) or Vimeo, then paste the embed link into Aspire.</p>
+          </div>
+          <div class="publish-buttons">
+            <button id="publishYouTubeBtn" class="btn btn-publish btn-yt" disabled>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23.498 6.186a2.94 2.94 0 0 0-2.07-2.082C19.582 3.6 12 3.6 12 3.6s-7.582 0-9.428.504A2.94 2.94 0 0 0 .502 6.186 30.6 30.6 0 0 0 0 12a30.6 30.6 0 0 0 .502 5.814 2.94 2.94 0 0 0 2.07 2.082C4.418 20.4 12 20.4 12 20.4s7.582 0 9.428-.504a2.94 2.94 0 0 0 2.07-2.082A30.6 30.6 0 0 0 24 12a30.6 30.6 0 0 0-.502-5.814zM9.6 15.6V8.4l6.24 3.6z"/>
+              </svg>
+              Publish to YouTube
+            </button>
+            <button id="publishVimeoBtn" class="btn btn-publish btn-vm" disabled>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23.977 6.416c-.105 2.338-1.738 5.543-4.894 9.609-3.268 4.247-6.026 6.37-8.29 6.37-1.4 0-2.582-1.298-3.55-3.895L5.32 11.31C4.587 8.715 3.806 7.418 2.97 7.418c-.183 0-.82.385-1.92 1.146L0 7.155a230.18 230.18 0 0 0 3.564-3.18C5.171 2.589 6.376 1.844 7.18 1.77c1.9-.184 3.07 1.116 3.51 3.9.477 3.005.807 4.875.99 5.61.546 2.474 1.146 3.71 1.802 3.71.51 0 1.275-.806 2.295-2.42 1.02-1.612 1.566-2.84 1.64-3.685.146-1.397-.404-2.097-1.65-2.097-.587 0-1.19.135-1.81.402 1.197-3.927 3.487-5.835 6.87-5.726 2.51.075 3.69 1.7 3.55 4.872z"/>
+              </svg>
+              Publish to Vimeo
+            </button>
+          </div>
+          <div id="publishProgress" class="publish-progress" style="display:none">
+            <div class="publish-progress-bar"><div id="publishProgressFill" class="publish-progress-fill"></div></div>
+            <p id="publishProgressText" class="publish-progress-text">Preparing...</p>
+          </div>
+          <div id="publishResult" class="publish-result" style="display:none"></div>
+        </div>
+
+        <p class="settings-link-row">
+          <a href="#" id="openSettingsLink">Settings & API keys →</a>
+        </p>
+      </div>
+
+      <!-- Right: Settings & Step List -->
+      <div class="settings-panel">
+        <!-- Video Settings -->
+        <div class="settings-card">
+          <h3>Video Settings</h3>
+          <div class="setting-row">
+            <label>Resolution</label>
+            <select id="resolution" class="select-input">
+              <option value="1920x1080" selected>1080p HD (1920×1080) — Recommended</option>
+              <option value="1280x720">720p (1280×720)</option>
+              <option value="960x540">540p (960×540) — Smallest file</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label>Background</label>
+            <select id="bgStyle" class="select-input">
+              <option value="gradient" selected>Gradient (Dark)</option>
+              <option value="white">Clean White</option>
+              <option value="brand">Brand Purple</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label>Transition</label>
+            <select id="transition" class="select-input">
+              <option value="fade" selected>Fade</option>
+              <option value="slide">Slide Left</option>
+              <option value="none">None (Cut)</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label>Pause Between Steps</label>
+            <select id="pauseDuration" class="select-input">
+              <option value="500">0.5s</option>
+              <option value="1000" selected>1s</option>
+              <option value="2000">2s</option>
+              <option value="3000">3s</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label>Output Format</label>
+            <select id="outputFormat" class="select-input">
+              <option value="mp4" selected>MP4 (Vimeo/YouTube)</option>
+              <option value="webm">WebM (Fastest)</option>
+            </select>
+          </div>
+          <div id="formatNote" class="hint" style="margin-top:4px"></div>
+        </div>
+
+        <!-- Audio Tier Selection -->
+        <div class="settings-card">
+          <h3>Narration Audio</h3>
+          <p class="hint" style="margin-bottom:8px">Choose how narration is generated from each step's text. Audio is auto-created from the narration text shown below.</p>
+          <div class="tier-selector">
+            <label class="tier-option">
+              <input type="radio" name="audioTier" value="preview" checked>
+              <div class="tier-card">
+                <strong>Speaker Preview (No Audio in File)</strong>
+                <span>Reads narration aloud through your speakers so you can check pacing. The exported video file will be <b>silent</b> — use this for quick drafts only.</span>
+              </div>
+            </label>
+            <label class="tier-option">
+              <input type="radio" name="audioTier" value="builtin">
+              <div class="tier-card">
+                <strong>Browser Voice (Limited)</strong>
+                <span>Attempts to capture browser text-to-speech into the video. <b>Note:</b> Due to browser limitations, audio may be faint or silent on some systems. Best for testing narration timing before using ElevenLabs.</span>
+              </div>
+            </label>
+            <label class="tier-option">
+              <input type="radio" name="audioTier" value="elevenlabs">
+              <div class="tier-card tier-pro">
+                <strong>ElevenLabs Pro Voice (Recommended for Final Videos)</strong>
+                <span>Professional AI-generated narration embedded directly into the video file. Crystal-clear audio, natural speech. <b>This is the only tier that guarantees audio in the exported MP4.</b></span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Browser TTS Settings (shown for preview & builtin) -->
+        <div class="settings-card" id="browserTtsSettings">
+          <h3>Browser Voice Settings</h3>
+          <div class="setting-row">
+            <label>Voice</label>
+            <select id="ttsVoice" class="select-input"></select>
+          </div>
+          <div class="setting-row">
+            <label>Speed</label>
+            <div class="range-row">
+              <input type="range" id="ttsRate" min="0.5" max="1.5" step="0.1" value="0.9" class="range-input">
+              <span id="rateLabel" class="range-value">0.9x</span>
+            </div>
+          </div>
+          <div class="setting-row">
+            <label>Pitch</label>
+            <div class="range-row">
+              <input type="range" id="ttsPitch" min="0.5" max="1.5" step="0.1" value="1.0" class="range-input">
+              <span id="pitchLabel" class="range-value">1.0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ElevenLabs Settings (shown only for elevenlabs tier) -->
+        <div class="settings-card" id="elevenLabsSettings" style="display:none">
+          <h3>ElevenLabs Settings</h3>
+          <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:6px">
+            <label>API Key</label>
+            <input type="password" id="elApiKey" class="text-input" placeholder="xi-xxxxxxxxxxxxxxxx...">
+            <p class="hint">Your key is stored locally in this browser only. Never sent anywhere except ElevenLabs.</p>
+          </div>
+          <div class="setting-row">
+            <label>Voice</label>
+            <select id="elVoice" class="select-input">
+              <option value="">Enter API key first</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <button id="elLoadVoices" class="btn btn-outline btn-sm">Load Voices</button>
+            <button id="elPreviewVoice" class="btn btn-outline btn-sm" disabled>Preview Voice</button>
+          </div>
+          <div class="setting-row">
+            <label>Model</label>
+            <select id="elModel" class="select-input">
+              <option value="eleven_monolingual_v1">Monolingual v1</option>
+              <option value="eleven_multilingual_v2" selected>Multilingual v2</option>
+              <option value="eleven_turbo_v2_5">Turbo v2.5 (fastest)</option>
+            </select>
+          </div>
+          <div id="elStatus" class="hint" style="color:#6366f1"></div>
+        </div>
+
+        <!-- Intro/Outro + Role Filter -->
+        <div class="settings-card">
+          <label class="check-label">
+            <input type="checkbox" id="includeIntro" checked>
+            Include title intro slide
+          </label>
+          <label class="check-label">
+            <input type="checkbox" id="includeOutro" checked>
+            Include closing slide
+          </label>
+          <div class="setting-row" style="margin-top:10px">
+            <label>Audience (role filter)</label>
+            <select id="videoRoleFilter" class="select-input">
+              <option value="all">All Staff</option>
+              <option value="manager">Housing Manager</option>
+              <option value="frontdesk">Front Desk</option>
+              <option value="finance">Finance</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Export Info -->
+        <div class="settings-card">
+          <h3>Export Bundle Contents</h3>
+          <div class="bundle-info">
+            <div class="bundle-item">
+              <span class="bundle-icon">🎬</span>
+              <div>
+                <strong>video.mp4</strong>
+                <span>1080p H.264, narrated, ready for Vimeo/YouTube/Yardi</span>
+              </div>
+            </div>
+            <div class="bundle-item">
+              <span class="bundle-icon">💬</span>
+              <div>
+                <strong>captions.srt</strong>
+                <span>Subtitles timed to narration — works on YouTube, Vimeo, most platforms</span>
+              </div>
+            </div>
+            <div class="bundle-item">
+              <span class="bundle-icon">💬</span>
+              <div>
+                <strong>captions.vtt</strong>
+                <span>WebVTT captions — for HTML5 video and web-based LMS (ADA compliant)</span>
+              </div>
+            </div>
+            <div class="bundle-item">
+              <span class="bundle-icon">📑</span>
+              <div>
+                <strong>chapters.vtt</strong>
+                <span>Chapter markers — one per step, enables "jump to step" in Vimeo/YouTube</span>
+              </div>
+            </div>
+            <div class="bundle-item">
+              <span class="bundle-icon">📄</span>
+              <div>
+                <strong>README.txt</strong>
+                <span>Upload instructions for Vimeo, YouTube, and Yardi LMS</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step List -->
+        <div class="settings-card steps-list-card">
+          <h3>Steps (<span id="stepCount">0</span>)</h3>
+          <p class="hint">Narration is auto-filled from each step's captured text. Edit any step below before generating.</p>
+          <div id="stepsList" class="steps-list">
+            <div class="empty-msg">Loading steps...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../../lib/jszip.min.js"></script>
+  <script src="../../shared/settings-store.js"></script>
+  <script src="../../shared/youtube-uploader.js"></script>
+  <script src="../../shared/vimeo-uploader.js"></script>
+  <script src="mp4-converter.js"></script>
+  <script src="audio-engine.js"></script>
+  <script src="video.js"></script>
+  <script src="video-publish.js"></script>
+</body>
+</html>

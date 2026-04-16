@@ -1,0 +1,22 @@
+/* FlowCapture Content Script Styles */
+
+@keyframes flowcapture-ripple {
+  0% { transform: scale(0.5); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+@keyframes flowcapture-slideIn {
+  from { transform: translateX(100px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes flowcapture-fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Subtle border when capture is active */
+body.flowcapture-active {
+  outline: 2px solid rgba(99, 102, 241, 0.3) !important;
+  outline-offset: -2px;
+}

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to FlowCapture</title>
+  <link rel="stylesheet" href="onboarding.css">
+</head>
+<body>
+  <div id="wizard">
+    <!-- Progress Bar -->
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="step-dots" id="stepDots"></div>
+
+    <!-- Step 1: Welcome -->
+    <div class="step active" data-step="0">
+      <div class="step-icon">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="3"/>
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+        </svg>
+      </div>
+      <h1>Welcome to FlowCapture</h1>
+      <p class="subtitle">The SOP capture tool built for HACSM</p>
+      <div class="step-body">
+        <p>FlowCapture helps you create step-by-step instructional manuals for Yardi and other systems. Click through any workflow and FlowCapture automatically captures each step with a screenshot.</p>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <span class="feature-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+            </span>
+            <strong>Auto-Capture</strong>
+            <span>Click = Screenshot</span>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </span>
+            <strong>Annotate</strong>
+            <span>Highlight, arrow, blur PII</span>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </span>
+            <strong>Export PDF</strong>
+            <span>Print-ready manuals</span>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><polygon points="5 3 19 12 5 21"/></svg>
+            </span>
+            <strong>Generate Video</strong>
+            <span>Narrated MP4 with captions</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Capturing -->
+    <div class="step" data-step="1">
+      <div class="step-icon">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <circle cx="12" cy="12" r="4" fill="#ef4444"/>
+        </svg>
+      </div>
+      <h2>Step 1: Capture a Workflow</h2>
+      <div class="step-body">
+        <div class="instruction-list">
+          <div class="instruction">
+            <span class="instruction-num">1</span>
+            <div>
+              <strong>Click the FlowCapture icon</strong> in your browser toolbar (top-right). The popup opens.
+            </div>
+          </div>
+          <div class="instruction">
+            <span class="instruction-num">2</span>
+            <div>
+              <strong>Name your SOP</strong> in the text field at the top (e.g., "Move-In Certification Process").
+            </div>
+          </div>
+          <div class="instruction">
+            <span class="instruction-num">3</span>
+            <div>
+              <strong>Click "Start Capturing"</strong> — the button turns red and shows a step counter.
+            </div>
+          </div>
+          <div class="instruction">
+            <span class="instruction-num">4</span>
+            <div>
+              <strong>Navigate to Yardi</strong> (or any site) and click through each step of the process. Each click automatically captures a screenshot.
+            </div>
+          </div>
+          <div class="instruction">
+            <span class="instruction-num">5</span>
+            <div>
+              <strong>Click "Stop Capturing"</strong> when you've finished the workflow.
+            </div>
+          </div>
+        </div>
+        <div class="tip-box">
+          <strong>Tip:</strong> You'll see a purple ripple and a small toast notification each time a step is captured. The badge on the extension icon shows how many steps you've recorded.
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Edit & Annotate -->
+    <div class="step" data-step="2">
+      <div class="step-icon">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+      </div>
+      <h2>Step 2: Edit & Annotate</h2>
+      <div class="step-body">
+        <p>After capturing, click <strong>"Edit"</strong> in the popup to open the full editor. Here you can:</p>
+        <div class="instruction-list">
+          <div class="instruction">
+            <span class="instruction-num icon-highlight">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+            </span>
+            <div>
+              <strong>Reorder steps</strong> — drag and drop to fix the sequence
+            </div>
+          </div>
+          <div class="instruction">
+            <span class="instruction-num icon-highlight">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </span>
+            <div>
+              <strong>Edit titles and descriptions</strong> — give each step a clear name and detailed instructions
+            </div>
+          </div>
+          <div class="instruction">
+            <span class="instruction-num icon-highlight">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            </span>
+            <div>
+              <strong>Annotate screenshots</strong> — add highlights, arrows, text boxes, and blur/redact PII (Social Security numbers, names, etc.)
+            </div>
+          </div>
+          <div class="instruction">
+            <span class="instruction-num icon-highlight">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+            </span>
+            <div>
+              <strong>Delete steps</strong> — remove any accidental or duplicate captures
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Agency Notes & Roles -->
+    <div class="step" data-step="3">
+      <div class="step-icon">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      <h2>Step 3: Agency Notes & Role Tags</h2>
+      <div class="step-body">
+        <p>FlowCapture is built for HACSM's specific needs. Two powerful features help customize SOPs for your agency:</p>
+        <div class="feature-section">
+          <h3>Agency Notes</h3>
+          <p>Add callout notes to any step to highlight HACSM-specific instructions. Four note types are available:</p>
+          <div class="note-examples">
+            <div class="note-example note-info">
+              <strong>Info</strong> — General HACSM guidance
+            </div>
+            <div class="note-example note-warning">
+              <strong>Warning</strong> — Important: don't skip this
+            </div>
+            <div class="note-example note-critical">
+              <strong>Critical</strong> — HUD compliance requirement
+            </div>
+            <div class="note-example note-tip">
+              <strong>Tip</strong> — HACSM shortcut or best practice
+            </div>
+          </div>
+        </div>
+        <div class="feature-section">
+          <h3>Role Tags</h3>
+          <p>Assign each step to a specific audience so the right people see the right instructions:</p>
+          <div class="role-pills">
+            <span class="role-pill role-all">All Staff</span>
+            <span class="role-pill role-manager">Housing Manager</span>
+            <span class="role-pill role-frontdesk">Front Desk</span>
+            <span class="role-pill role-finance">Finance</span>
+          </div>
+          <p class="hint">When exporting PDFs or videos, you can filter by role so each team gets a tailored version.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: Export -->
+    <div class="step" data-step="4">
+      <div class="step-icon">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </div>
+      <h2>Step 4: Export PDF & Video</h2>
+      <div class="step-body">
+        <div class="export-options">
+          <div class="export-card">
+            <div class="export-card-header">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <strong>PDF Export</strong>
+            </div>
+            <p>Print-ready manuals with HACSM branding, agency notes, role badges, and approval status. Perfect for binders, email distribution, and Yardi LMS document storage.</p>
+          </div>
+          <div class="export-card">
+            <div class="export-card-header">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><polygon points="5 3 19 12 5 21"/></svg>
+              <strong>Video Export</strong>
+            </div>
+            <p>Narrated instructional videos (1080p MP4) with chapter markers and closed captions. Upload to Vimeo, then paste the link into Yardi's LMS for on-demand training.</p>
+          </div>
+        </div>
+
+        <div class="tip-box">
+          <strong>About narration:</strong> For final videos with audio, use the <strong>ElevenLabs Pro Voice</strong> tier in the video settings. This is the only option that embeds clear narration directly into the MP4 file. The "Speaker Preview" option reads narration through your speakers for testing but does NOT include audio in the exported file.
+        </div>
+
+        <div class="feature-section" style="margin-top: 16px">
+          <h3>Sharing SOPs</h3>
+          <p>Use the green <strong>Export SOP</strong> / <strong>Import SOP</strong> buttons in the popup to share .flowcapture files with your team. The SME captures the workflow, then the PCO or manager imports it to review, add agency notes, and set the approval status before final export.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 6: Ready -->
+    <div class="step" data-step="5">
+      <div class="step-icon">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+      <h1>You're Ready!</h1>
+      <div class="step-body">
+        <p>FlowCapture is installed and ready to use. Here's your quick-start checklist:</p>
+        <div class="checklist">
+          <div class="checklist-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Click the FlowCapture icon to open the popup</span>
+          </div>
+          <div class="checklist-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Name your SOP and hit "Start Capturing"</span>
+          </div>
+          <div class="checklist-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Click through the Yardi workflow</span>
+          </div>
+          <div class="checklist-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Edit, annotate, and add agency notes</span>
+          </div>
+          <div class="checklist-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Export as PDF or generate a narrated video</span>
+          </div>
+        </div>
+        <p class="hint" style="margin-top: 16px">You can reopen this guide anytime from the popup menu. Look for the "?" help icon.</p>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="wizard-nav">
+      <button id="prevBtn" class="btn btn-outline" style="visibility:hidden">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        Back
+      </button>
+      <button id="nextBtn" class="btn btn-primary">
+        Get Started
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <script src="onboarding.js"></script>
+</body>
+</html>

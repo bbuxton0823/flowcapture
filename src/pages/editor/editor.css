@@ -1,0 +1,619 @@
+/* FlowCapture Editor Styles */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f8fafc;
+  color: #1e1e2e;
+  min-height: 100vh;
+}
+
+/* Top Bar */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sop-title-input {
+  font-size: 18px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: #1e1e2e;
+  min-width: 300px;
+}
+
+.sop-title-input:focus {
+  outline: none;
+  border-bottom: 2px solid #6366f1;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #6366f1;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #4f46e5;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.btn-outline {
+  background: white;
+  color: #475569;
+  border: 1.5px solid #e2e8f0;
+}
+
+.btn-outline:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+/* Steps Container */
+.steps-container {
+  max-width: 900px;
+  margin: 24px auto;
+  padding: 0 24px;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 80px 40px;
+}
+
+.empty-state h3 {
+  margin-top: 16px;
+  color: #64748b;
+  font-size: 18px;
+}
+
+.empty-state p {
+  margin-top: 8px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+/* Step Card */
+.step-card {
+  background: white;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  margin-bottom: 16px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.step-card:hover {
+  border-color: #c7d2fe;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.step-card.dragging {
+  opacity: 0.5;
+  transform: rotate(1deg);
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #fafafa;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.step-number {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.step-badge {
+  width: 28px;
+  height: 28px;
+  background: #6366f1;
+  color: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.drag-handle {
+  cursor: grab;
+  color: #cbd5e1;
+  padding: 4px;
+}
+
+.drag-handle:active { cursor: grabbing; }
+
+.step-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.step-action-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.step-action-btn:hover {
+  background: #f1f5f9;
+  color: #6366f1;
+}
+
+.step-action-btn.delete:hover {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.step-body {
+  padding: 16px;
+}
+
+.step-screenshot {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.step-screenshot:hover {
+  transform: scale(1.01);
+}
+
+.step-fields {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.step-title-input {
+  font-size: 15px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+  color: #1e1e2e;
+  transition: border-color 0.2s;
+}
+
+.step-title-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  background: #fafafe;
+}
+
+.step-desc-input {
+  font-size: 13px;
+  padding: 6px 10px;
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+  color: #475569;
+  resize: vertical;
+  min-height: 40px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.step-desc-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  background: #fafafe;
+}
+
+.step-meta {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.step-meta a {
+  color: #6366f1;
+  text-decoration: none;
+}
+
+.step-meta a:hover {
+  text-decoration: underline;
+}
+
+/* Annotation Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: white;
+  border-radius: 16px;
+  width: 90vw;
+  max-width: 1000px;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-header h3 {
+  font-size: 16px;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.modal-close:hover {
+  background: #f1f5f9;
+  color: #1e1e2e;
+}
+
+.annotation-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 20px;
+  background: #fafafa;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.tool-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.tool-btn:hover, .tool-btn.active {
+  background: #eef2ff;
+  color: #6366f1;
+}
+
+.tool-separator {
+  width: 1px;
+  height: 24px;
+  background: #e2e8f0;
+  margin: 0 4px;
+}
+
+.color-picker {
+  width: 28px;
+  height: 28px;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.canvas-container {
+  overflow: auto;
+  max-height: calc(90vh - 130px);
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  background: #f1f5f9;
+}
+
+#annotationCanvas {
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ── Approval Status Bar ── */
+.approval-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 24px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 57px;
+  z-index: 90;
+}
+
+.approval-bar-left,
+.approval-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.approval-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.approval-pills,
+.role-filter-pills {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.approval-pill,
+.role-filter-pill {
+  padding: 4px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 20px;
+  background: white;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.approval-pill:hover,
+.role-filter-pill:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.approval-pill.active,
+.role-filter-pill.active {
+  background: #6366f1;
+  color: white;
+  border-color: #6366f1;
+}
+
+.approved-stamp {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1.5px solid #86efac;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ── Step Card Enhancements ── */
+.step-header-meta {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border: 1px solid;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* ── Role Selector ── */
+.step-role-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.step-field-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.role-selector {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.role-pill {
+  padding: 3px 10px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 20px;
+  background: white;
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.role-pill:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+/* ── Agency Notes ── */
+.agency-notes-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.agency-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 10px;
+  border-left: 3px solid;
+  border-radius: 0 6px 6px 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.note-label {
+  font-weight: 700;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.note-text {
+  flex: 1;
+}
+
+.note-delete-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.5;
+  padding: 0 2px;
+  color: inherit;
+  transition: opacity 0.15s;
+}
+
+.note-delete-btn:hover {
+  opacity: 1;
+}
+
+/* ── Add Note Form ── */
+.add-note-form {
+  margin-top: 6px;
+  padding: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.note-type-select {
+  padding: 5px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  background: white;
+}
+
+.note-text-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.note-text-input:focus,
+.note-type-select:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+.note-form-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-note-save {
+  padding: 5px 14px;
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-note-save:hover {
+  background: #4f46e5;
+}
+
+.btn-note-cancel {
+  padding: 5px 14px;
+  background: white;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-note-cancel:hover {
+  background: #f8fafc;
+}

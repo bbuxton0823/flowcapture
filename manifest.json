@@ -1,0 +1,74 @@
+{
+  "manifest_version": 3,
+  "name": "FlowCapture",
+  "version": "1.6.0",
+  "description": "FlowCapture — SOP capture tool for HACSM. Auto-screenshot workflows, annotate with agency notes, one-click Auto Video (screenshots → narrated MP4) with captions, and publish to YouTube or Vimeo with an embed link ready for Yardi Aspire.",
+  "icons": {
+    "16": "assets/icons/icon-16.png",
+    "48": "assets/icons/icon-48.png",
+    "128": "assets/icons/icon-128.png"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "assets/icons/icon-16.png",
+      "48": "assets/icons/icon-48.png"
+    },
+    "default_title": "FlowCapture"
+  },
+  "background": {
+    "service_worker": "src/background/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/content.js"],
+      "css": ["src/content/content.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "storage",
+    "scripting",
+    "offscreen",
+    "desktopCapture",
+    "tabCapture",
+    "downloads",
+    "identity"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "https://www.googleapis.com/*",
+    "https://api.elevenlabs.io/*",
+    "https://api.vimeo.com/*",
+    "https://upload.vimeo.com/*",
+    "https://oauth2.googleapis.com/*",
+    "https://accounts.google.com/*"
+  ],
+  "oauth2": {
+    "client_id": "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/drive.file"
+    ]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/pages/editor/editor.html",
+        "src/pages/recorder/recorder.html",
+        "src/pages/export/export.html",
+        "src/pages/video/video.html",
+        "src/pages/onboarding/onboarding.html",
+        "src/pages/settings/settings.html",
+        "lib/*",
+        "assets/*"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

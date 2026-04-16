@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Build artifacts
+*.tar.gz
+*.zip
+dist/
+
+# Secrets (API keys should never be committed)
+.env
+.env.local
+credentials.json

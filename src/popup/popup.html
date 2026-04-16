@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowCapture</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="3"/>
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+        </svg>
+        <span class="logo-text">FlowCapture</span>
+      </div>
+      <div class="header-right">
+        <button id="settingsBtn" class="btn-help" title="API Keys & Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+          </svg>
+        </button>
+        <button id="helpBtn" class="btn-help" title="Open setup guide">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </button>
+        <span class="version">v1.6</span>
+      </div>
+    </div>
+
+    <!-- Project Name -->
+    <div class="project-section">
+      <input type="text" id="projectName" class="project-name" value="My First SOP" placeholder="SOP Name...">
+    </div>
+
+    <!-- Capture Controls -->
+    <div class="capture-section">
+      <button id="captureBtn" class="btn btn-capture">
+        <svg id="captureIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"/>
+        </svg>
+        <span id="captureBtnText">Start Capturing</span>
+      </button>
+      <div class="step-counter">
+        <span id="stepCount">0</span> steps captured
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions">
+      <button id="editBtn" class="btn btn-secondary" title="Edit SOP">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        Edit
+      </button>
+      <button id="recordBtn" class="btn btn-secondary" title="Screen Record">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 7l-7 5 7 5V7z"/>
+          <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+        </svg>
+        Record
+      </button>
+      <button id="videoBtn" class="btn btn-secondary" title="Generate Video">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="5 3 19 12 5 21"/>
+        </svg>
+        Video
+      </button>
+      <button id="autoVideoBtn" class="btn btn-secondary btn-auto" title="One-click: screenshots → narrated video with sensible defaults">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+        Auto Video
+      </button>
+      <button id="exportBtn" class="btn btn-secondary" title="Export PDF">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        PDF
+      </button>
+    </div>
+
+    <!-- Share / Transfer -->
+    <div class="share-section">
+      <button id="exportSopBtn" class="btn btn-share" title="Export SOP file for sharing">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        Export SOP
+      </button>
+      <button id="importSopBtn" class="btn btn-share" title="Import SOP file from teammate">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Import SOP
+      </button>
+    </div>
+
+    <!-- Team Sync (Optional) -->
+    <div class="team-sync-section">
+      <button id="teamSyncToggle" class="team-sync-toggle">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+          <path d="M16 3.13a4 4 0 010 7.75"/>
+        </svg>
+        <span>Team Sync</span>
+        <span class="team-sync-badge" id="syncBadge" style="display:none">Connected</span>
+        <svg class="chevron" id="syncChevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      <div id="teamSyncPanel" class="team-sync-panel" style="display:none">
+        <!-- Signed Out State -->
+        <div id="syncSignedOut" class="sync-state">
+          <p class="sync-desc">Optionally connect Google Drive to sync SOPs with your team. Not required — file export/import works everywhere.</p>
+          <button id="driveSignInBtn" class="btn btn-drive">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+            </svg>
+            Connect Google Drive
+          </button>
+        </div>
+        <!-- Signed In State -->
+        <div id="syncSignedIn" class="sync-state" style="display:none">
+          <div class="sync-user-row">
+            <span class="sync-user-email" id="syncUserEmail"></span>
+            <button id="driveSignOutBtn" class="btn-text-sm">Disconnect</button>
+          </div>
+          <div class="sync-actions">
+            <button id="driveSaveBtn" class="btn btn-sync-action">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              Save to Drive
+            </button>
+            <button id="driveOpenBtn" class="btn btn-sync-action">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Open from Drive
+            </button>
+          </div>
+          <div id="syncStatus" class="sync-status" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <button id="clearBtn" class="btn-text" title="Clear all steps">Clear All</button>
+      <button id="newProjectBtn" class="btn-text" title="New project">New SOP</button>
+    </div>
+  </div>
+
+  <script src="../shared/sop-transfer.js"></script>
+  <script src="../shared/drive-sync.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

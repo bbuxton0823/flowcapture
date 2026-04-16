@@ -1,0 +1,444 @@
+/* FlowCapture Onboarding Wizard Styles */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #faf5ff 100%);
+  color: #1e1e2e;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#wizard {
+  max-width: 680px;
+  width: 100%;
+  margin: 40px auto;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 8px 40px rgba(99, 102, 241, 0.1), 0 1px 3px rgba(0,0,0,0.06);
+  padding: 32px 40px 28px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ─── Progress ──────────────────────────────────────────── */
+
+.progress-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #e2e8f0;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  transition: width 0.4s ease;
+  width: 0%;
+  border-radius: 0 2px 2px 0;
+}
+
+.step-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 28px;
+  padding-top: 12px;
+}
+
+.step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.step-dot.active {
+  background: #6366f1;
+  transform: scale(1.2);
+}
+
+.step-dot.completed {
+  background: #a5b4fc;
+}
+
+/* ─── Steps ─────────────────────────────────────────────── */
+
+.step {
+  display: none;
+  animation: fadeIn 0.35s ease;
+}
+
+.step.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.step-icon {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+h1 {
+  font-size: 26px;
+  font-weight: 800;
+  text-align: center;
+  color: #1e1e2e;
+  margin-bottom: 4px;
+}
+
+h2 {
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  color: #1e1e2e;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  text-align: center;
+  font-size: 15px;
+  color: #6366f1;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.step-body {
+  margin-top: 16px;
+}
+
+.step-body > p {
+  font-size: 14px;
+  line-height: 1.65;
+  color: #475569;
+  margin-bottom: 16px;
+}
+
+/* ─── Feature Grid (Welcome) ──────────────────────────── */
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.feature-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 14px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.feature-card:hover {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+}
+
+.feature-card strong {
+  font-size: 13px;
+  color: #1e1e2e;
+}
+
+.feature-card span:last-child {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ─── Instruction List ────────────────────────────────── */
+
+.instruction-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.instruction {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.instruction-num {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #6366f1;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 50%;
+}
+
+.instruction-num.icon-highlight {
+  background: #eef2ff;
+  color: #6366f1;
+}
+
+.instruction div {
+  font-size: 14px;
+  line-height: 1.55;
+  color: #475569;
+  padding-top: 3px;
+}
+
+.instruction strong {
+  color: #1e1e2e;
+}
+
+/* ─── Tip Box ─────────────────────────────────────────── */
+
+.tip-box {
+  margin-top: 18px;
+  padding: 14px 16px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-left: 4px solid #f59e0b;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #92400e;
+}
+
+.tip-box strong {
+  color: #78350f;
+}
+
+/* ─── Feature Section ─────────────────────────────────── */
+
+.feature-section {
+  margin-top: 20px;
+}
+
+.feature-section h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e1e2e;
+  margin-bottom: 8px;
+}
+
+.feature-section p {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #475569;
+  margin-bottom: 10px;
+}
+
+/* ─── Note Examples ───────────────────────────────────── */
+
+.note-examples {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.note-example {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  border-left: 4px solid;
+}
+
+.note-info {
+  background: #eff6ff;
+  border-left-color: #3b82f6;
+  color: #1e40af;
+}
+
+.note-warning {
+  background: #fffbeb;
+  border-left-color: #f59e0b;
+  color: #92400e;
+}
+
+.note-critical {
+  background: #fef2f2;
+  border-left-color: #ef4444;
+  color: #991b1b;
+}
+
+.note-tip {
+  background: #f0fdf4;
+  border-left-color: #22c55e;
+  color: #166534;
+}
+
+/* ─── Role Pills ──────────────────────────────────────── */
+
+.role-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.role-pill {
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.role-all { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+.role-manager { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
+.role-frontdesk { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.role-finance { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+
+.hint {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+/* ─── Export Cards ────────────────────────────────────── */
+
+.export-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.export-card {
+  padding: 18px 16px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+}
+
+.export-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.export-card-header strong {
+  font-size: 14px;
+  color: #1e1e2e;
+}
+
+.export-card p {
+  font-size: 12px;
+  line-height: 1.55;
+  color: #64748b;
+}
+
+/* ─── Checklist (Final step) ─────────────────────────── */
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #166534;
+  font-weight: 500;
+}
+
+/* ─── Navigation ──────────────────────────────────────── */
+
+.wizard-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #6366f1;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #4f46e5;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+}
+
+.btn-outline {
+  background: white;
+  color: #475569;
+  border: 1.5px solid #e2e8f0;
+}
+
+.btn-outline:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.btn-success {
+  background: #16a34a;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #15803d;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3);
+}
+
+/* ─── Responsive ──────────────────────────────────────── */
+
+@media (max-width: 700px) {
+  #wizard {
+    margin: 16px;
+    padding: 24px 20px 20px;
+  }
+
+  .feature-grid,
+  .export-options {
+    grid-template-columns: 1fr;
+  }
+
+  h1 { font-size: 22px; }
+  h2 { font-size: 19px; }
+}

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowCapture - Export PDF</title>
+  <link rel="stylesheet" href="export.css">
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="topbar-left">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="3"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        <h1 class="page-title">Export SOP</h1>
+      </div>
+      <div class="topbar-actions">
+        <button id="backToEditor" class="btn btn-outline">Back to Editor</button>
+        <button id="downloadPdf" class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Download PDF
+        </button>
+      </div>
+    </header>
+
+    <!-- Export Options -->
+    <div class="options-panel">
+      <h3>Export Settings</h3>
+      <div class="option-group">
+        <label class="option-label">
+          <input type="checkbox" id="includeUrls" checked>
+          Include page URLs
+        </label>
+        <label class="option-label">
+          <input type="checkbox" id="includeTimestamps" checked>
+          Include timestamps
+        </label>
+        <label class="option-label">
+          <input type="checkbox" id="includeNumbers" checked>
+          Include step numbers
+        </label>
+        <label class="option-label">
+          <input type="checkbox" id="includeHeader" checked>
+          Include header/footer
+        </label>
+      </div>
+      <div class="option-group">
+        <label class="option-label">
+          <input type="checkbox" id="includeAgencyNotes" checked>
+          Include agency notes/callouts
+        </label>
+        <label class="option-label">
+          <input type="checkbox" id="includeRoleBadge" checked>
+          Include role tags on steps
+        </label>
+      </div>
+      <div class="option-group">
+        <label class="option-label">Filter by Role</label>
+        <select id="roleFilter" class="select-input">
+          <option value="all">All Staff (show all steps)</option>
+          <option value="manager">Housing Manager only</option>
+          <option value="frontdesk">Front Desk only</option>
+          <option value="finance">Finance only</option>
+        </select>
+      </div>
+      <div class="option-group">
+        <label class="option-label">Page Size</label>
+        <select id="pageSize" class="select-input">
+          <option value="a4">A4</option>
+          <option value="letter" selected>US Letter</option>
+          <option value="legal">US Legal</option>
+        </select>
+      </div>
+      <div class="option-group">
+        <label class="option-label">Orientation</label>
+        <select id="orientation" class="select-input">
+          <option value="portrait" selected>Portrait</option>
+          <option value="landscape">Landscape</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Preview -->
+    <div class="preview-section">
+      <h3>Preview</h3>
+      <div id="previewContainer" class="preview-container">
+        <div class="loading" id="loading">
+          <div class="spinner"></div>
+          <p>Generating preview...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- jsPDF (local copy for CSP compliance) -->
+  <script src="../../../lib/jspdf.umd.min.js"></script>
+  <script src="export.js"></script>
+</body>
+</html>
