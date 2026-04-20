@@ -904,6 +904,11 @@
   // When opened with ?auto=1, apply sensible defaults and kick off
   // generateVideo() automatically. This is the "Snagit-style" one-click
   // workflow: screenshots → narrated video with no extra configuration.
+  //
+  // v1.6.1: When no ElevenLabs key is configured, show a guard modal
+  // asking the user whether to Configure / Proceed with browser voice /
+  // Cancel — instead of silently falling back. A "Don't ask again" flag
+  // suppresses the prompt on Proceed/Configure.
   async function maybeAutoStart() {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -929,33 +934,42 @@
       if (introChk) introChk.checked = true;
       if (outroChk) outroChk.checked = true;
 
-      // Prefer ElevenLabs if the user has a key saved; otherwise fall back
-      // to Browser Voice so we still get audio in the file when possible.
+      // Prefer ElevenLabs if a key is saved. If not, run the v1.6.1 guard
+      // unless the user has previously asked us not to.
       let chose = 'builtin';
+      let elevenSettings = null;
       try {
         if (window.FlowCaptureSettings) {
           const settings = await window.FlowCaptureSettings.getAll();
-          if (settings?.elevenLabs?.apiKey) {
-            chose = 'elevenlabs';
-            const elKey = document.getElementById('elApiKey');
-            const elVoiceSel = document.getElementById('elVoice');
-            const elModelSel = document.getElementById('elModel');
-            if (elKey) elKey.value = settings.elevenLabs.apiKey;
-            if (elVoiceSel && settings.elevenLabs.defaultVoiceId) {
-              // Voice list may not be loaded yet; insert the saved voice as a
-              // placeholder option so AudioEngine can still use it.
-              const opt = document.createElement('option');
-              opt.value = settings.elevenLabs.defaultVoiceId;
-              opt.textContent = settings.elevenLabs.defaultVoiceLabel || 'Saved voice';
-              opt.selected = true;
-              elVoiceSel.appendChild(opt);
-            }
-            if (elModelSel && settings.elevenLabs.defaultModel) {
-              elModelSel.value = settings.elevenLabs.defaultModel;
-            }
-          }
+          elevenSettings = settings?.elevenLabs || null;
         }
-      } catch (_) { /* non-fatal; use builtin fallback */ }
+      } catch (_) { /* non-fatal; treat as no key */ }
+
+      const hasElKey = !!(elevenSettings && elevenSettings.apiKey);
+
+      if (hasElKey) {
+        chose = 'elevenlabs';
+        applyElevenLabsToForm(elevenSettings);
+      } else {
+        const ackd = await getSilentAckFlag();
+        if (!ackd) {
+          const decision = await showAvModal();
+          if (decision === 'cancel') {
+            updateProgress(0, 'Auto Video cancelled. Configure ElevenLabs in Settings, or click Generate when ready.');
+            return;
+          }
+          if (decision === 'configure') {
+            // Open Settings in a new tab; do not start generation.
+            try {
+              chrome.tabs.create({ url: chrome.runtime.getURL('src/pages/settings/settings.html') });
+            } catch (e) { console.warn('[FlowCapture] could not open settings tab:', e); }
+            updateProgress(0, 'Opened Settings. Add your ElevenLabs key, then click Auto Video again.');
+            return;
+          }
+          // decision === 'proceed' → fall through with browser voice
+        }
+        chose = 'builtin';
+      }
 
       const radios = document.querySelectorAll('input[name="audioTier"]');
       radios.forEach(r => { r.checked = (r.value === chose); });
@@ -968,6 +982,94 @@
     } catch (err) {
       console.error('[FlowCapture] Auto Video start failed:', err);
     }
+  }
+
+  // ─── v1.6.1 helpers: silent-ack flag + guard modal ───────────────
+  const SILENT_ACK_KEY = 'flowcapture_av_silent_ack';
+
+  async function getSilentAckFlag() {
+    try {
+      const r = await chrome.storage.local.get(SILENT_ACK_KEY);
+      return !!r[SILENT_ACK_KEY];
+    } catch (_) { return false; }
+  }
+  async function setSilentAckFlag(v) {
+    try { await chrome.storage.local.set({ [SILENT_ACK_KEY]: !!v }); }
+    catch (e) { console.warn('[FlowCapture] could not persist silent-ack flag:', e); }
+  }
+
+  function applyElevenLabsToForm(elevenSettings) {
+    const elKey = document.getElementById('elApiKey');
+    const elVoiceSel = document.getElementById('elVoice');
+    const elModelSel = document.getElementById('elModel');
+    if (elKey) elKey.value = elevenSettings.apiKey;
+    if (elVoiceSel && elevenSettings.defaultVoiceId) {
+      const opt = document.createElement('option');
+      opt.value = elevenSettings.defaultVoiceId;
+      opt.textContent = elevenSettings.defaultVoiceLabel || 'Saved voice';
+      opt.selected = true;
+      elVoiceSel.appendChild(opt);
+    }
+    if (elModelSel && elevenSettings.defaultModel) {
+      elModelSel.value = elevenSettings.defaultModel;
+    }
+  }
+
+  // Show the guard modal; resolve with 'configure' | 'proceed' | 'cancel'.
+  // Persists silent-ack on Proceed or Configure if "Don't ask again" is checked.
+  // Cancel never persists the flag (Cancel = "not now", not "never").
+  function showAvModal() {
+    return new Promise((resolve) => {
+      const overlay = document.getElementById('avModal');
+      const configureBtn = document.getElementById('avConfigureBtn');
+      const proceedBtn = document.getElementById('avProceedBtn');
+      const cancelBtn = document.getElementById('avCancelBtn');
+      const dontAsk = document.getElementById('avDontAsk');
+      if (!overlay || !configureBtn || !proceedBtn || !cancelBtn || !dontAsk) {
+        // Modal markup missing → fail open with the safe default (cancel).
+        console.warn('[FlowCapture] guard modal markup missing; treating as cancel.');
+        return resolve('cancel');
+      }
+
+      let settled = false;
+      const finish = async (result) => {
+        if (settled) return;
+        settled = true;
+        if ((result === 'proceed' || result === 'configure') && dontAsk.checked) {
+          await setSilentAckFlag(true);
+        }
+        cleanup();
+        overlay.style.display = 'none';
+        resolve(result);
+      };
+
+      const onKey = (e) => { if (e.key === 'Escape') finish('cancel'); };
+      const onOverlayClick = (e) => { if (e.target === overlay) finish('cancel'); };
+      const onConfigure = () => finish('configure');
+      const onProceed = () => finish('proceed');
+      const onCancel = () => finish('cancel');
+
+      const cleanup = () => {
+        document.removeEventListener('keydown', onKey, true);
+        overlay.removeEventListener('click', onOverlayClick);
+        configureBtn.removeEventListener('click', onConfigure);
+        proceedBtn.removeEventListener('click', onProceed);
+        cancelBtn.removeEventListener('click', onCancel);
+      };
+
+      // Reset transient UI
+      dontAsk.checked = false;
+
+      document.addEventListener('keydown', onKey, true);
+      overlay.addEventListener('click', onOverlayClick);
+      configureBtn.addEventListener('click', onConfigure);
+      proceedBtn.addEventListener('click', onProceed);
+      cancelBtn.addEventListener('click', onCancel);
+
+      overlay.style.display = 'flex';
+      // Defer focus until paint so the button actually receives it.
+      setTimeout(() => { try { configureBtn.focus(); } catch (_) {} }, 60);
+    });
   }
 
 })();

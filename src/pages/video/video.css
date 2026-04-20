@@ -618,3 +618,72 @@ body {
   text-decoration: none;
 }
 .settings-link-row a:hover { text-decoration: underline; }
+
+/* ─── v1.6.1: Auto Video guard modal ─────────────────────────────── */
+.av-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+  animation: avFadeIn 120ms ease-out;
+}
+.av-modal-card {
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 12px;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.24);
+  padding: 24px 28px;
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  animation: avPopIn 160ms ease-out;
+}
+.av-modal-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
+}
+.av-modal-body {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #334155;
+}
+.av-modal-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #475569;
+  margin-bottom: 20px;
+  cursor: pointer;
+  user-select: none;
+}
+.av-modal-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.av-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.av-modal-actions .btn:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+@keyframes avFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes avPopIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .av-modal-overlay, .av-modal-card { animation: none; }
+}
