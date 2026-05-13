@@ -35,12 +35,17 @@ class AudioEngine {
       elevenLabsKey: config.elevenLabsKey || '',
       elevenLabsVoiceId: config.elevenLabsVoiceId || '',
       elevenLabsModel: config.elevenLabsModel || 'eleven_monolingual_v1',
+      onError: typeof config.onError === 'function' ? config.onError : null,
       ...config,
     };
 
     this.audioCtx = null;
     this.destination = null;
     this._speaking = false;
+  }
+
+  _reportError(source, message) {
+    try { this.config.onError && this.config.onError({ source, message }); } catch (_) {}
   }
 
   /**
@@ -133,15 +138,29 @@ class AudioEngine {
 
       const startTime = Date.now();
 
+      // Chrome's speechSynthesis silently stops after ~15s on long utterances.
+      // Toggling pause()/resume() every 10s keeps the synthesizer alive.
+      const keepAlive = setInterval(() => {
+        try {
+          if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.pause();
+            window.speechSynthesis.resume();
+          }
+        } catch (_) {}
+      }, 10000);
+
       utterance.onend = () => {
+        clearInterval(keepAlive);
         this._speaking = false;
         const duration = Date.now() - startTime;
         resolve(Math.max(duration, 1500));
       };
 
       utterance.onerror = (e) => {
+        clearInterval(keepAlive);
         this._speaking = false;
         console.warn('[AudioEngine] TTS error:', e.error);
+        this._reportError('browser-tts', e.error || 'speech synthesis error');
         resolve(this.estimateDuration(text));
       };
 
@@ -223,6 +242,7 @@ class AudioEngine {
       if (!response.ok) {
         const errText = await response.text();
         console.error('[AudioEngine] ElevenLabs API error:', response.status, errText);
+        this._reportError('elevenlabs', `API ${response.status}: ${errText || 'request failed'}`);
         // Fallback to browser TTS
         return this._speakBrowserTTS(text, true);
       }
@@ -251,6 +271,7 @@ class AudioEngine {
 
     } catch (err) {
       console.error('[AudioEngine] ElevenLabs error:', err);
+      this._reportError('elevenlabs', err?.message || String(err));
       // Graceful fallback
       return this._speakBrowserTTS(text, true);
     }

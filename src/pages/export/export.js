@@ -9,6 +9,10 @@
 const MSG = { GET_STEPS: 'GET_STEPS' };
 const STORAGE_KEYS = { PROJECTS: 'flowcapture_projects', CURRENT_PROJECT: 'flowcapture_current_project' };
 
+// Retry on transient SW-suspension errors when messaging.js is present.
+const sendMsg = (msg) =>
+  (window.FlowCaptureMessaging?.sendMessageWithRetry || chrome.runtime.sendMessage.bind(chrome.runtime))(msg);
+
 function formatTimestamp(ts) {
   return new Date(ts).toLocaleString('en-US', {
     month: 'short', day: 'numeric', year: 'numeric',
@@ -61,7 +65,7 @@ const orientation = document.getElementById('orientation');
 
 async function loadData() {
   try {
-    const response = await chrome.runtime.sendMessage({ type: MSG.GET_STEPS });
+    const response = await sendMsg({ type: MSG.GET_STEPS });
     if (response?.success) {
       steps = response.steps || [];
       projectName = response.project?.name || 'Untitled SOP';
@@ -262,7 +266,7 @@ async function generatePDF() {
       doc.setFontSize(8);
       doc.setTextColor(148, 163, 184);
       doc.text(projectName, margin, 8);
-      doc.text(`Step ${i + 1} of ${steps.length}`, pageWidth - margin - 30, 8);
+      doc.text(`Step ${i + 1} of ${exportSteps.length}`, pageWidth - margin - 30, 8);
       yPos = 20;
     }
 
@@ -452,6 +456,18 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+// Only allow http(s) URLs in <a href>; otherwise return "#".
+// Captured step URLs could contain `javascript:` schemes if the source page
+// set window.location to one — interpolating those raw would create an XSS
+// vector in the exported HTML.
+function sanitizeUrl(url) {
+  if (!url) return '#';
+  try {
+    const u = new URL(url);
+    return (u.protocol === 'http:' || u.protocol === 'https:') ? url : '#';
+  } catch { return '#'; }
+}
+
 // ─── HTML Export ─────────────────────────────────────────────────────
 
 async function exportHTML(steps, project) {
@@ -460,7 +476,7 @@ async function exportHTML(steps, project) {
       ? `<img src="${step.imageData}" alt="Step ${i + 1} screenshot" class="screenshot" />`
       : '<div class="no-screenshot">No screenshot</div>';
     const urlLine = step.url
-      ? `<div class="step-url"><span class="label">URL:</span> <a href="${escapeHtml(step.url)}">${escapeHtml(step.url)}</a></div>`
+      ? `<div class="step-url"><span class="label">URL:</span> <a href="${escapeHtml(sanitizeUrl(step.url))}">${escapeHtml(step.url)}</a></div>`
       : '';
     const selectorLine = step.elementSelector
       ? `<div class="step-selector"><span class="label">Element:</span> <code>${escapeHtml(step.elementSelector)}</code></div>`

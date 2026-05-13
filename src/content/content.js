@@ -11,6 +11,9 @@
 (function() {
   'use strict';
 
+  if (window.__flowcaptureContentLoaded) return;
+  window.__flowcaptureContentLoaded = true;
+
   const MSG = {
     CAPTURE_STEP: 'CAPTURE_STEP',
     SET_CAPTURING: 'SET_CAPTURING',
@@ -55,9 +58,14 @@
 
   function getElementText(el) {
     if (!el) return '';
-    const text = el.innerText || el.textContent || el.value ||
+    // Never read the typed value of a password field — it would otherwise be
+    // serialized into the step and exported to PDF/HTML/Drive.
+    const isPassword = el.tagName === 'INPUT' && el.type === 'password';
+    const value = isPassword ? '' : (el.value || '');
+    const text = el.innerText || el.textContent || value ||
       el.getAttribute('aria-label') || el.getAttribute('title') ||
-      el.getAttribute('placeholder') || el.getAttribute('alt') || '';
+      (isPassword ? '' : el.getAttribute('placeholder')) ||
+      el.getAttribute('alt') || '';
     return text.trim().substring(0, 150);
   }
 

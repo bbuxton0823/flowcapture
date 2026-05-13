@@ -304,6 +304,8 @@ const DriveSync = {
 
   /**
    * Download a .flowcapture file from Drive and return its parsed contents.
+   * Caps the payload at 50 MB; parsing a multi-gigabyte JSON locks the tab
+   * and risks an OOM, so we refuse oversized files before reading the body.
    */
   async downloadSOP(fileId) {
     if (!fileId || typeof fileId !== 'string') throw new Error('Invalid Drive file ID');
@@ -315,6 +317,13 @@ const DriveSync = {
     });
 
     if (!response.ok) throw new Error('Failed to download file from Drive');
+
+    const MAX_BYTES = 50 * 1024 * 1024;
+    const contentLength = parseInt(response.headers.get('content-length') || '0', 10);
+    if (contentLength > MAX_BYTES) {
+      throw new Error(`SOP file too large: ${(contentLength / 1e6).toFixed(1)} MB (max 50 MB)`);
+    }
+
     const data = await response.json();
 
     if (!data._flowcapture) {
@@ -351,8 +360,11 @@ const DriveSync = {
    * Uses SOPTransfer to build the export data, then uploads.
    */
   async saveCurrentToDrive() {
-    // Get steps from background
-    const response = await chrome.runtime.sendMessage({ type: 'GET_STEPS' });
+    // Get steps from background — use the retry helper when available so the
+    // first call after a SW wake-up doesn't surface as a hard failure.
+    const send = window.FlowCaptureMessaging?.sendMessageWithRetry
+      || chrome.runtime.sendMessage.bind(chrome.runtime);
+    const response = await send({ type: 'GET_STEPS' });
     if (!response?.success) throw new Error('Failed to load project');
 
     const project = response.project;

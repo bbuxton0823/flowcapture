@@ -19,6 +19,10 @@
 
   const MSG = { GET_STEPS: 'GET_STEPS' };
 
+  // Use the shared retry wrapper if loaded; fall back to plain sendMessage.
+  const sendMsg = (msg) =>
+    (window.FlowCaptureMessaging?.sendMessageWithRetry || chrome.runtime.sendMessage.bind(chrome.runtime))(msg);
+
   // ─── DOM Elements ────────────────────────────────────────────────
 
   const canvas = document.getElementById('videoCanvas');
@@ -278,6 +282,15 @@
       elevenLabsKey: elApiKey.value.trim(),
       elevenLabsVoiceId: elVoice.value,
       elevenLabsModel: elModel.value,
+      onError: ({ source, message }) => {
+        // Surface upstream TTS failures instead of silently falling back.
+        const label = source === 'elevenlabs' ? 'ElevenLabs' : 'Browser TTS';
+        console.warn(`[FlowCapture:video] ${label} error — ${message}`);
+        if (elStatus && source === 'elevenlabs') {
+          elStatus.textContent = `${label} failed: ${message} — using browser voice instead.`;
+          elStatus.style.color = '#ef4444';
+        }
+      },
     };
     audioEngine = new AudioEngine(tier, config);
     return audioEngine;
@@ -287,7 +300,7 @@
 
   async function loadSteps() {
     try {
-      const response = await chrome.runtime.sendMessage({ type: MSG.GET_STEPS });
+      const response = await sendMsg({ type: MSG.GET_STEPS });
       if (response?.success) {
         steps = response.steps || [];
         projectName = response.project?.name || 'Untitled SOP';
@@ -429,7 +442,7 @@
   function getTextColor() { return bgStyleSelect.value === 'white' ? '#1e1e2e' : '#ffffff'; }
   function getSubColor() { return bgStyleSelect.value === 'white' ? '#64748b' : '#94a3b8'; }
 
-  function renderFrame(stepIndex) {
+  async function renderFrame(stepIndex) {
     const { width, height } = getResolution();
     canvas.width = width; canvas.height = height;
     const step = steps[stepIndex];
@@ -459,31 +472,34 @@
 
     if (step.imageData) {
       const img = new Image();
-      img.onload = () => {
-        const r = img.width / img.height;
-        let dw = maxW, dh = dw / r;
-        if (dh > maxH) { dh = maxH; dw = dh * r; }
-        const ix = pad + (maxW - dw) / 2;
-
-        ctx.shadowColor = 'rgba(0,0,0,0.35)';
-        ctx.shadowBlur = 24; ctx.shadowOffsetY = 6;
-        ctx.save();
-        roundRect(ctx, ix, imgTop, dw, dh, 10); ctx.clip();
-        ctx.drawImage(img, ix, imgTop, dw, dh);
-        ctx.restore();
-        ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-        ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
-        roundRect(ctx, ix, imgTop, dw, dh, 10); ctx.stroke();
-
-        // Caption bar at bottom
-        const capY = height - Math.round(height * 0.12);
-        drawCaptionBar(getNarrationText(step, stepIndex), width, height, capY, pad);
-      };
       img.src = step.imageData;
-    } else {
-      const capY = height - Math.round(height * 0.12);
-      drawCaptionBar(getNarrationText(step, stepIndex), width, height, capY, pad);
+      try {
+        // Wait for the image to fully decode before drawing. Previously this
+        // code drew synchronously and relied on a 350 ms sleep elsewhere,
+        // which produced blank frames on slow machines.
+        await img.decode();
+      } catch (_) {
+        // decode() can reject if the data URL is malformed; fall through and
+        // attempt drawImage anyway so the slide still has the caption bar.
+      }
+      const r = img.width / img.height || 16 / 9;
+      let dw = maxW, dh = dw / r;
+      if (dh > maxH) { dh = maxH; dw = dh * r; }
+      const ix = pad + (maxW - dw) / 2;
+
+      ctx.shadowColor = 'rgba(0,0,0,0.35)';
+      ctx.shadowBlur = 24; ctx.shadowOffsetY = 6;
+      ctx.save();
+      roundRect(ctx, ix, imgTop, dw, dh, 10); ctx.clip();
+      ctx.drawImage(img, ix, imgTop, dw, dh);
+      ctx.restore();
+      ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
+      roundRect(ctx, ix, imgTop, dw, dh, 10); ctx.stroke();
     }
+
+    const capY = height - Math.round(height * 0.12);
+    drawCaptionBar(getNarrationText(step, stepIndex), width, height, capY, pad);
   }
 
   /**
@@ -657,8 +673,9 @@
           renderOutroSlide();
         } else {
           updateProgress(pct, `Step ${slide.index + 1}/${steps.length} — generating narration...`);
-          renderFrame(slide.index);
-          await sleep(350); // Give canvas time to draw image
+          // renderFrame is async and resolves only after the image is fully
+          // decoded — no fixed sleep needed.
+          await renderFrame(slide.index);
         }
 
         // Record chapter start

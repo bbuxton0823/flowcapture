@@ -36,6 +36,9 @@ const MSG = {
   EXPORT_PDF: 'EXPORT_PDF',
   STEP_CAPTURED: 'STEP_CAPTURED',
   CAPTURE_ERROR: 'CAPTURE_ERROR',
+  CREATE_PROJECT: 'CREATE_PROJECT',
+  UPDATE_PROJECT: 'UPDATE_PROJECT',
+  IMPORT_PROJECT: 'IMPORT_PROJECT',
 };
 
 const STORAGE_KEYS = {
@@ -74,7 +77,14 @@ function openDB() {
       if (!db.objectStoreNames.contains(DB_CONFIG.STORES.RECORDINGS))
         db.createObjectStore(DB_CONFIG.STORES.RECORDINGS, { keyPath: 'id' });
     };
-    request.onsuccess = (event) => { dbInstance = event.target.result; resolve(dbInstance); };
+    request.onsuccess = (event) => {
+      dbInstance = event.target.result;
+      // After the SW sleeps and wakes the existing connection can be closed
+      // by the platform. Drop our cached reference so the next openDB() call
+      // re-opens cleanly instead of reusing a dead handle.
+      dbInstance.onclose = () => { dbInstance = null; };
+      resolve(dbInstance);
+    };
     request.onerror = (event) => reject(new Error(`IndexedDB error: ${event.target.error}`));
   });
 }
@@ -300,9 +310,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             break;
           }
 
+          const windowId = sender?.tab?.windowId;
+          if (windowId == null) {
+            sendResponse({ success: false, error: 'No windowId — cannot capture this tab' });
+            break;
+          }
           let screenshotDataUrl;
           try {
-            const windowId = sender?.tab?.windowId ?? null;
             screenshotDataUrl = await chrome.tabs.captureVisibleTab(windowId, { format: 'png', quality: 92 });
           } catch (err) {
             log.warn('captureVisibleTab failed:', err.message);
@@ -330,8 +344,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           await updateProject(project);
 
           const newCount = project.steps.length;
-          await setCaptureState({ isCapturing: true, stepCount: newCount });
-          await updateBadge(true, newCount);
+          // Re-read capture state before re-asserting isCapturing=true. The
+          // user may have toggled capture off during the await chain above;
+          // don't clobber that decision.
+          const latestState = await getCaptureState();
+          const stillCapturing = !!latestState.isCapturing;
+          await setCaptureState({ isCapturing: stillCapturing, stepCount: newCount });
+          await updateBadge(stillCapturing, newCount);
 
           sendResponse({ success: true, stepId: step.id, stepNumber: newCount });
           break;
@@ -400,6 +419,66 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           await setCaptureState({ isCapturing: false, stepCount: 0 });
           await updateBadge(false, 0);
           sendResponse({ success: true });
+          break;
+        }
+
+        // ── Single-writer project mutations ──
+        // Callers (editor, popup, sop-transfer) must use these instead of
+        // writing chrome.storage.local.flowcapture_projects directly, to avoid
+        // lost-write races when multiple tabs mutate the project list at once.
+
+        case MSG.CREATE_PROJECT: {
+          const projects = await getProjects();
+          const incoming = message.payload?.project || {};
+          const newProject = {
+            id: incoming.id || generateId(),
+            name: (incoming.name || 'Untitled SOP').toString().slice(0, 200),
+            description: incoming.description || '',
+            createdAt: incoming.createdAt || Date.now(),
+            updatedAt: Date.now(),
+            steps: Array.isArray(incoming.steps) ? incoming.steps : [],
+            settings: incoming.settings || { includeUrls: true, exportFormat: 'pdf' },
+          };
+          projects.push(newProject);
+          await chrome.storage.local.set({
+            [STORAGE_KEYS.PROJECTS]: projects,
+            [STORAGE_KEYS.CURRENT_PROJECT]: newProject.id,
+          });
+          sendResponse({ success: true, project: newProject, id: newProject.id });
+          break;
+        }
+
+        case MSG.UPDATE_PROJECT: {
+          const { id, patch } = message.payload || {};
+          if (!id || !patch || typeof patch !== 'object') {
+            sendResponse({ success: false, error: 'UPDATE_PROJECT requires {id, patch}' });
+            break;
+          }
+          const projects = await getProjects();
+          const idx = projects.findIndex(p => p.id === id);
+          if (idx === -1) {
+            sendResponse({ success: false, error: 'Project not found' });
+            break;
+          }
+          projects[idx] = { ...projects[idx], ...patch, id, updatedAt: Date.now() };
+          await chrome.storage.local.set({ [STORAGE_KEYS.PROJECTS]: projects });
+          sendResponse({ success: true, project: projects[idx] });
+          break;
+        }
+
+        case MSG.IMPORT_PROJECT: {
+          const incoming = message.payload?.project;
+          if (!incoming || !incoming.id) {
+            sendResponse({ success: false, error: 'IMPORT_PROJECT requires {project}' });
+            break;
+          }
+          const projects = await getProjects();
+          projects.push({ ...incoming, updatedAt: Date.now() });
+          await chrome.storage.local.set({
+            [STORAGE_KEYS.PROJECTS]: projects,
+            [STORAGE_KEYS.CURRENT_PROJECT]: incoming.id,
+          });
+          sendResponse({ success: true, id: incoming.id });
           break;
         }
 

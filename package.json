@@ -1,6 +1,6 @@
 {
   "name": "flowcapture",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "description": "Chrome MV3 extension: capture, annotate, narrate, and publish Standard Operating Procedures.",
   "private": true,
   "directories": {

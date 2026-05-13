@@ -166,9 +166,18 @@ const SOPTransfer = {
     const newProjectId = crypto.randomUUID();
     const idMap = {}; // old ID → new ID
 
+    // Only accept base64-encoded image data URLs. SVG data URLs (and other
+    // non-image schemes) can execute script when rendered via <img src>, so
+    // we strip anything that doesn't match the allowlist.
+    const SAFE_DATA_URL = /^data:image\/(png|jpeg|jpg|gif|webp);base64,[A-Za-z0-9+/=]+$/;
+
     const importedSteps = (data.steps || []).map((step, i) => {
       const newStepId = crypto.randomUUID();
       idMap[step.id] = newStepId;
+      if (step.screenshotDataUrl && !SAFE_DATA_URL.test(step.screenshotDataUrl)) {
+        warnings.push(`Step ${i + 1}: stripped unsafe screenshot data URL.`);
+        step.screenshotDataUrl = '';
+      }
 
       return {
         id: newStepId,
@@ -202,14 +211,12 @@ const SOPTransfer = {
       approvalStatus: data.project?.approvalStatus || 'draft',
     };
 
-    // ── Store in chrome.storage ──
-    const result = await chrome.storage.local.get('flowcapture_projects');
-    const projects = result.flowcapture_projects || [];
-    projects.push(importedProject);
-
-    await chrome.storage.local.set({
-      flowcapture_projects: projects,
-      flowcapture_current_project: newProjectId,
+    // ── Store via background (single-writer) ──
+    // Direct writes to flowcapture_projects from multiple pages race; route
+    // through background so the project list has exactly one writer.
+    await chrome.runtime.sendMessage({
+      type: 'IMPORT_PROJECT',
+      payload: { project: importedProject },
     });
 
     // ── Store screenshots in IndexedDB ──
@@ -253,13 +260,11 @@ const SOPTransfer = {
       },
     ];
 
-    // Update project with edit history
-    const updatedProjects = (await chrome.storage.local.get('flowcapture_projects')).flowcapture_projects || [];
-    const idx = updatedProjects.findIndex(p => p.id === newProjectId);
-    if (idx !== -1) {
-      updatedProjects[idx] = importedProject;
-      await chrome.storage.local.set({ flowcapture_projects: updatedProjects });
-    }
+    // Update project with edit history (via background)
+    await chrome.runtime.sendMessage({
+      type: 'UPDATE_PROJECT',
+      payload: { id: newProjectId, patch: { editHistory: importedProject.editHistory } },
+    });
 
     return {
       project: importedProject,

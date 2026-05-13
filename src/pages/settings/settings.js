@@ -88,10 +88,12 @@
     // Back / Done
     $('backBtn').addEventListener('click', () => window.close());
 
-    // ElevenLabs
-    $('elApiKey').addEventListener('change', saveElevenLabs);
-    $('elDefaultModel').addEventListener('change', saveElevenLabs);
-    $('elDefaultVoice').addEventListener('change', saveElevenLabs);
+    // ElevenLabs — debounce rapid changes so concurrent storage.set calls
+    // don't race and lose intermediate field updates.
+    $('elApiKey').addEventListener('change', debouncedSaveElevenLabs);
+    $('elApiKey').addEventListener('input', debouncedSaveElevenLabs);
+    $('elDefaultModel').addEventListener('change', debouncedSaveElevenLabs);
+    $('elDefaultVoice').addEventListener('change', debouncedSaveElevenLabs);
     $('elLoadVoicesBtn').addEventListener('click', async () => {
       await saveElevenLabs();
       const key = $('elApiKey').value.trim();
@@ -161,6 +163,12 @@
     refreshAllStatuses();
   }
 
+  let elSaveTimer = null;
+  function debouncedSaveElevenLabs() {
+    clearTimeout(elSaveTimer);
+    elSaveTimer = setTimeout(() => { saveElevenLabs(); }, 300);
+  }
+
   async function loadElevenLabsVoices(apiKey, selectedId) {
     try {
       const res = await fetch('https://api.elevenlabs.io/v1/voices', {
@@ -184,7 +192,12 @@
   }
 
   async function testElevenLabs() {
-    const key = $('elApiKey').value.trim();
+    // Always persist whatever's in the form before testing so the result
+    // reflects the stored key, not just whatever the user typed since.
+    clearTimeout(elSaveTimer);
+    await saveElevenLabs();
+    const stored = await Settings.getSection('elevenLabs');
+    const key = (stored?.apiKey || '').trim();
     if (!key) return toast('Enter API key first', 'error');
     try {
       const res = await fetch('https://api.elevenlabs.io/v1/user', {

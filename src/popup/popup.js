@@ -192,21 +192,18 @@
     const name = rawName.trim().slice(0, 200);
     if (!name) return;
 
-    const newProject = {
-      id: generateId(), name, description: '',
-      createdAt: Date.now(), updatedAt: Date.now(), steps: [],
-      settings: { includeUrls: true, exportFormat: 'pdf' },
-    };
-    const result = await chrome.storage.local.get(STORAGE_KEYS.PROJECTS);
-    const projects = result[STORAGE_KEYS.PROJECTS] || [];
-    projects.push(newProject);
-    await chrome.storage.local.set({
-      [STORAGE_KEYS.PROJECTS]: projects,
-      [STORAGE_KEYS.CURRENT_PROJECT]: newProject.id,
+    const response = await chrome.runtime.sendMessage({
+      type: 'CREATE_PROJECT',
+      payload: { project: { name } },
     });
+    if (!response?.success) {
+      alert('Could not create project: ' + (response?.error || 'Unknown error'));
+      return;
+    }
     if (projectNameInput) projectNameInput.value = name;
     if (stepCountEl) stepCountEl.textContent = '0';
     isCapturing = false;
+    currentProject = response.project;
     updateUI();
   });
 
@@ -215,14 +212,11 @@
     clearTimeout(nameDebounce);
     nameDebounce = setTimeout(async () => {
       if (!currentProject) return;
-      const result = await chrome.storage.local.get(STORAGE_KEYS.PROJECTS);
-      const projects = result[STORAGE_KEYS.PROJECTS] || [];
-      const idx = projects.findIndex(p => p.id === currentProject.id);
-      if (idx !== -1) {
-        projects[idx].name = projectNameInput.value.trim().slice(0, 200) || 'Untitled SOP';
-        projects[idx].updatedAt = Date.now();
-        await chrome.storage.local.set({ [STORAGE_KEYS.PROJECTS]: projects });
-      }
+      const name = projectNameInput.value.trim().slice(0, 200) || 'Untitled SOP';
+      await chrome.runtime.sendMessage({
+        type: 'UPDATE_PROJECT',
+        payload: { id: currentProject.id, patch: { name } },
+      });
     }, 500);
   });
 
@@ -378,6 +372,15 @@
   on($('settingsBtn'), 'click', () => {
     chrome.tabs.create({ url: chrome.runtime.getURL('src/pages/settings/settings.html') });
     window.close();
+  });
+
+  // Live-update the step counter while the popup is open. CAPTURE_STEP
+  // writes through chrome.storage.local on every click, so we just listen.
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    if (changes.flowcapture_projects || changes.flowcapture_capture_state) {
+      loadState();
+    }
   });
 
   // Check Drive connection on load (non-intrusive)

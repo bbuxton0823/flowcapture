@@ -152,9 +152,10 @@ class MP4Converter {
     // Capture both video stream AND audio stream from the video element
     const videoStream = canvas.captureStream(30);
     let combinedStream;
+    let audioCtx = null;
     try {
       // Web Audio API: route video audio into a MediaStreamDestination
-      const audioCtx = new AudioContext();
+      audioCtx = new AudioContext();
       const source = audioCtx.createMediaElementSource(video);
       const dest = audioCtx.createMediaStreamDestination();
       source.connect(dest);
@@ -211,9 +212,17 @@ class MP4Converter {
       if (recorder.state !== 'inactive') recorder.stop();
     }, (video.duration * 1000 || 60000) + 5000);
 
-    await done;
-    clearTimeout(safetyTimeout);
-    URL.revokeObjectURL(videoUrl);
+    try {
+      await done;
+    } finally {
+      clearTimeout(safetyTimeout);
+      URL.revokeObjectURL(videoUrl);
+      // Chrome caps AudioContext at 6 per page. Without this, repeated
+      // conversions accumulate contexts until further runs throw.
+      if (audioCtx && audioCtx.state !== 'closed') {
+        try { await audioCtx.close(); } catch (_) {}
+      }
+    }
 
     if (chunks.length === 0) throw new Error('Conversion produced no output chunks');
     return new Blob(chunks, { type: mp4Type });

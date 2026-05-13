@@ -506,9 +506,10 @@ test('HTML EXPORT: export.html includes "Export as HTML" button with id="downloa
 function loadExportHelpers() {
   const src = readSrc('src/pages/export/export.js');
   const escapeFn = src.match(/function escapeHtml\(str\) \{[\s\S]*?\n\}/)[0];
+  const sanitizeFn = src.match(/function sanitizeUrl\(url\) \{[\s\S]*?\n\}/)[0];
   const exportFn = src.match(/async function exportHTML\([\s\S]*?\n\}\n/)[0];
   // Build a small module that exports both via a returned object.
-  const code = `${escapeFn}\n${exportFn}\nreturn { escapeHtml, exportHTML };`;
+  const code = `${escapeFn}\n${sanitizeFn}\n${exportFn}\nreturn { escapeHtml, sanitizeUrl, exportHTML };`;
   return new Function(code)();
 }
 
