@@ -272,7 +272,7 @@
     if (audioEngine) audioEngine.destroy();
     const tier = getSelectedTier();
     const config = {
-      voice: parseInt(ttsVoiceSelect.value) || 0,
+      voice: parseInt(ttsVoiceSelect.value, 10) || 0,
       rate: parseFloat(ttsRateInput.value),
       pitch: parseFloat(ttsPitchInput.value),
       elevenLabsKey: elApiKey.value.trim(),
@@ -321,14 +321,14 @@
 
     stepsList.querySelectorAll('.step-narration').forEach(ta => {
       ta.addEventListener('input', (e) => {
-        steps[parseInt(e.target.dataset.index)]._narration = e.target.value;
+        steps[parseInt(e.target.dataset.index, 10)]._narration = e.target.value;
       });
     });
 
     stepsList.querySelectorAll('.step-item').forEach(item => {
       item.addEventListener('click', (e) => {
         if (e.target.tagName === 'TEXTAREA') return;
-        previewIndex = parseInt(item.dataset.index);
+        previewIndex = parseInt(item.dataset.index, 10);
         renderFrame(previewIndex);
         overlay.classList.add('hidden');
       });
@@ -887,7 +887,7 @@
     const step = steps[previewIndex];
     const u = new SpeechSynthesisUtterance(getNarrationText(step, previewIndex));
     const voices = speechSynthesis.getVoices();
-    if (voices[parseInt(ttsVoiceSelect.value)]) u.voice = voices[parseInt(ttsVoiceSelect.value)];
+    if (voices[parseInt(ttsVoiceSelect.value, 10)]) u.voice = voices[parseInt(ttsVoiceSelect.value, 10)];
     u.rate = parseFloat(ttsRateInput.value);
     speechSynthesis.speak(u);
     previewIndex = (previewIndex + 1) % steps.length;
