@@ -20,6 +20,7 @@
   let isCapturing = false;
   let clickDebounceTimer = null;
   let notificationEl = null;
+  let captureBanner = null;
 
   // ─── Element Info Extraction ─────────────────────────────────────
 
@@ -133,6 +134,74 @@
     setTimeout(() => { if (notificationEl) notificationEl.remove(); }, 2000);
   }
 
+  function showErrorNotification(message) {
+    if (notificationEl) notificationEl.remove();
+    notificationEl = document.createElement('div');
+    notificationEl.className = 'flowcapture-notification';
+    const inner = document.createElement('div');
+    inner.style.cssText = `
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: #ef4444;
+      color: white;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 2147483647;
+      box-shadow: 0 4px 20px rgba(239,68,68,0.4);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: flowcapture-slideIn 0.3s ease-out, flowcapture-fadeOut 0.3s ease-in 2.5s forwards;
+      max-width: 320px;
+    `;
+    inner.textContent = '⚠ ' + message;
+    notificationEl.appendChild(inner);
+    document.body.appendChild(notificationEl);
+    setTimeout(() => { if (notificationEl) notificationEl.remove(); }, 3000);
+  }
+
+  function showCaptureBanner() {
+    if (captureBanner) return;
+    captureBanner = document.createElement('div');
+    captureBanner.id = 'flowcapture-banner';
+    captureBanner.style.cssText = `
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #6366f1;
+      color: white;
+      padding: 8px 20px;
+      border-radius: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      z-index: 2147483647;
+      box-shadow: 0 4px 24px rgba(99,102,241,0.5);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+      letter-spacing: 0.02em;
+    `;
+    captureBanner.innerHTML = `
+      <span style="width:8px;height:8px;background:#ff4444;border-radius:50%;display:inline-block;animation:flowcapture-pulse 1s ease-in-out infinite;"></span>
+      FlowCapture recording — click anything to capture a step
+    `;
+    document.body.appendChild(captureBanner);
+  }
+
+  function hideCaptureBanner() {
+    if (captureBanner) {
+      captureBanner.remove();
+      captureBanner = null;
+    }
+  }
+
   // ─── Click Handler ───────────────────────────────────────────────
 
   function handleClick(event) {
@@ -166,10 +235,13 @@
       }, (response) => {
         if (chrome.runtime.lastError) {
           console.warn('[FlowCapture] Message error:', chrome.runtime.lastError);
+          showErrorNotification('Capture failed — try reloading the extension');
           return;
         }
         if (response?.success) {
           showNotification(response.stepNumber);
+        } else {
+          showErrorNotification(response?.error || 'Capture failed');
         }
       });
     }, 100);
@@ -181,6 +253,11 @@
     if (message.type === MSG.SET_CAPTURING) {
       isCapturing = message.payload.isCapturing;
       document.body.classList.toggle('flowcapture-active', isCapturing);
+      if (isCapturing) {
+        showCaptureBanner();
+      } else {
+        hideCaptureBanner();
+      }
       sendResponse({ success: true });
     }
     return true;
@@ -195,6 +272,7 @@
         if (response?.success) {
           isCapturing = response.state.isCapturing;
           document.body.classList.toggle('flowcapture-active', isCapturing);
+          if (isCapturing) showCaptureBanner();
         }
       });
     } catch (_) {}

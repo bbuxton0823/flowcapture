@@ -234,13 +234,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           };
           await setCaptureState(newState);
           await updateBadge(newState.isCapturing, newState.stepCount);
-          // Respond immediately — don't make the popup wait for tab broadcasts
+
+          // Notify the active tab FIRST and synchronously — this is the tab
+          // the user wants to capture on. If the content script is missing
+          // (popped extension, fresh install on an already-open tab), inject
+          // it so the state lands before we respond to the popup.
+          let activeTabId = null;
+          try {
+            const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+            if (activeTab?.id) {
+              activeTabId = activeTab.id;
+              await chrome.tabs.sendMessage(activeTab.id, {
+                type: MSG.SET_CAPTURING,
+                payload: newState,
+              }).catch(() => {
+                return chrome.scripting.executeScript({
+                  target: { tabId: activeTab.id },
+                  files: ['src/content/content.js'],
+                }).catch(() => {});
+              });
+            }
+          } catch (_) {}
+
           sendResponse({ success: true, state: newState });
-          // Fire-and-forget broadcasts to all tabs (parallel, no await)
+
+          // Broadcast to all other tabs in background (fire-and-forget)
           chrome.tabs.query({}).then(tabs => {
             tabs.forEach(tab => {
+              if (tab.id === activeTabId) return;
               chrome.tabs.sendMessage(tab.id, { type: MSG.SET_CAPTURING, payload: newState })
-                .catch(() => {}); // expected for chrome://, extension pages, etc.
+                .catch(() => {});
             });
           });
           break;
@@ -279,8 +302,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
           let screenshotDataUrl;
           try {
-            screenshotDataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png', quality: 92 });
+            const windowId = sender?.tab?.windowId ?? null;
+            screenshotDataUrl = await chrome.tabs.captureVisibleTab(windowId, { format: 'png', quality: 92 });
           } catch (err) {
+            log.warn('captureVisibleTab failed:', err.message);
             sendResponse({ success: false, error: 'Screenshot failed: ' + err.message });
             break;
           }

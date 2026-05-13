@@ -464,19 +464,20 @@ test('CAPTURE: popup.js retries SET_CAPTURING once on SW connection loss', () =>
   assert.match(src, /const\s+desired\s*=\s*!isCapturing/);
 });
 
-test('CAPTURE: background.js sendResponse for SET_CAPTURING runs BEFORE tab broadcast', () => {
+test('CAPTURE: background.js sendResponse for SET_CAPTURING runs BEFORE the broadcast loop', () => {
   const src = readSrc('src/background/background.js');
   const handlerStart = src.indexOf('case MSG.SET_CAPTURING');
   assert.ok(handlerStart !== -1, 'SET_CAPTURING handler must exist');
   const handlerEnd = src.indexOf('break;', handlerStart);
   const handler = src.slice(handlerStart, handlerEnd);
   const respIdx = handler.indexOf('sendResponse');
-  const broadcastIdx = handler.indexOf('chrome.tabs.query');
+  // The broadcast loop targets all tabs — chrome.tabs.query({})
+  const broadcastIdx = handler.indexOf('chrome.tabs.query({})');
   assert.ok(respIdx !== -1, 'sendResponse must be present');
-  assert.ok(broadcastIdx !== -1, 'tab broadcast must be present');
+  assert.ok(broadcastIdx !== -1, 'all-tabs broadcast must be present');
   assert.ok(
     respIdx < broadcastIdx,
-    'sendResponse must run before the tab broadcast so the popup is not blocked',
+    'sendResponse must run before the all-tabs broadcast so the popup is not blocked',
   );
   // The broadcast must NOT await each tab serially — should be fire-and-forget.
   assert.doesNotMatch(handler, /for\s*\(\s*const\s+tab\s+of\s+tabs\s*\)\s*\{\s*try\s*\{\s*await\s+chrome\.tabs\.sendMessage/);
@@ -591,4 +592,49 @@ test('MP4: _convertWebMtoMP4 routes audio through Web Audio API', () => {
 test('MP4: recorder.js prefers MP4 via getBestMimeType(true)', () => {
   const src = readSrc('src/pages/recorder/recorder.js');
   assert.match(src, /getBestMimeType\(true\)/);
+});
+
+// ────────────────────────────────────────────────────────────────────
+// 15. Root-cause capture fixes
+// ────────────────────────────────────────────────────────────────────
+test('CAPTURE FIX: SET_CAPTURING handler queries the active tab with lastFocusedWindow before responding', () => {
+  const src = readSrc('src/background/background.js');
+  const handlerStart = src.indexOf('case MSG.SET_CAPTURING');
+  assert.ok(handlerStart !== -1, 'SET_CAPTURING handler must exist');
+  const handlerEnd = src.indexOf('break;', handlerStart);
+  const handler = src.slice(handlerStart, handlerEnd);
+  // The active-tab lookup must happen inside the handler
+  assert.match(handler, /chrome\.tabs\.query\(\s*\{\s*active:\s*true,\s*lastFocusedWindow:\s*true\s*\}/);
+  // The active-tab lookup must run BEFORE sendResponse so the content script
+  // is notified synchronously while the popup is still alive.
+  const queryIdx = handler.indexOf("lastFocusedWindow: true");
+  const respIdx = handler.indexOf('sendResponse');
+  assert.ok(queryIdx !== -1 && respIdx !== -1, 'both calls must exist');
+  assert.ok(queryIdx < respIdx, 'active-tab query must run before sendResponse');
+  // Falls back to scripting.executeScript if content script not yet injected
+  assert.match(handler, /chrome\.scripting\.executeScript/);
+});
+
+test('CAPTURE FIX: CAPTURE_STEP uses sender.tab.windowId for captureVisibleTab', () => {
+  const src = readSrc('src/background/background.js');
+  const handlerStart = src.indexOf('case MSG.CAPTURE_STEP');
+  assert.ok(handlerStart !== -1, 'CAPTURE_STEP handler must exist');
+  const handlerEnd = src.indexOf('break;', src.indexOf('sendResponse({ success: true, stepId', handlerStart));
+  const handler = src.slice(handlerStart, handlerEnd);
+  // Must derive windowId from the sender tab so we capture the right window
+  assert.match(handler, /sender\?\.tab\?\.windowId/);
+  // And pass it to captureVisibleTab (not null)
+  assert.match(handler, /chrome\.tabs\.captureVisibleTab\(\s*windowId\s*,/);
+});
+
+test('CAPTURE FIX: content.js has showErrorNotification that renders a red toast', () => {
+  const src = readSrc('src/content/content.js');
+  assert.match(src, /function\s+showErrorNotification\s*\(/);
+  // Red background to distinguish from success toast
+  assert.match(src, /background:\s*#ef4444/);
+  // Called from the handleClick response path on failure
+  assert.match(src, /showErrorNotification\(\s*response\?\.error/);
+  // Persistent banner is shown while capturing
+  assert.match(src, /function\s+showCaptureBanner\s*\(/);
+  assert.match(src, /function\s+hideCaptureBanner\s*\(/);
 });
