@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FlowCapture — Record any browser workflow as a narrated video SOP</title>
+<meta name="description" content="FlowCapture is a Chrome extension that records browser workflows as narrated video SOPs and polished PDFs — one click, no screen recorder needed." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-elev: #161b22;
+    --bg-elev-2: #1c232c;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --teal: #01696F;
+    --teal-bright: #02949c;
+    --teal-glow: rgba(1, 105, 111, 0.35);
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--teal-bright); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, kbd {
+    font-family: var(--mono);
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.88em;
+    color: #d2d8e0;
+  }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Top nav */
+  .nav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(13, 17, 23, 0.85);
+    backdrop-filter: saturate(180%) blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px; max-width: 1100px; margin: 0 auto;
+  }
+  .nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.05rem; }
+  .nav-links { display: flex; gap: 22px; font-size: 0.92rem; }
+  .nav-links a { color: var(--text-dim); }
+  .nav-links a:hover { color: var(--text); text-decoration: none; }
+  @media (max-width: 640px) { .nav-links { display: none; } }
+
+  /* Hero */
+  .hero {
+    padding: 96px 0 80px;
+    text-align: center;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(1,105,111,0.20), transparent 60%),
+      var(--bg);
+  }
+  .hero-logo {
+    width: 84px; height: 84px;
+    margin: 0 auto 28px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 32px var(--teal-glow);
+  }
+  h1 {
+    font-size: clamp(2.6rem, 6vw, 4.2rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin-bottom: 18px;
+    background: linear-gradient(180deg, #fff 0%, #c9d1d9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subhead {
+    font-size: clamp(1.05rem, 2vw, 1.3rem);
+    color: var(--text-dim);
+    max-width: 680px;
+    margin: 0 auto 36px;
+  }
+  .cta {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--teal);
+    color: #fff;
+    font-weight: 600;
+    font-size: 1.1rem;
+    padding: 16px 32px;
+    border-radius: 12px;
+    border: 1px solid var(--teal-bright);
+    box-shadow: 0 8px 24px var(--teal-glow);
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .cta:hover {
+    background: var(--teal-bright);
+    transform: translateY(-1px);
+    text-decoration: none;
+  }
+  .hero-meta {
+    margin-top: 22px;
+    color: var(--text-dim);
+    font-size: 0.92rem;
+  }
+  .hero-meta span { margin: 0 8px; opacity: 0.7; }
+
+  /* Section */
+  section { padding: 72px 0; }
+  .section-title {
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .section-sub {
+    color: var(--text-dim);
+    text-align: center;
+    max-width: 620px;
+    margin: 0 auto 48px;
+  }
+
+  /* Feature grid */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  @media (max-width: 900px) { .features { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .features { grid-template-columns: 1fr; } }
+  .feature {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 26px;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+  .feature:hover {
+    border-color: var(--teal);
+    transform: translateY(-2px);
+  }
+  .feature-icon {
+    font-size: 1.8rem;
+    margin-bottom: 14px;
+    display: block;
+  }
+  .feature h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  .feature p { color: var(--text-dim); font-size: 0.95rem; }
+
+  /* Install section */
+  .install-bg { background: linear-gradient(180deg, var(--bg) 0%, #0a0e13 100%); }
+  .install-step {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px;
+    margin-bottom: 22px;
+  }
+  .install-step h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 18px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .step-badge {
+    background: var(--teal);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .download-btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--teal);
+    color: #fff;
+    font-weight: 600;
+    font-size: 1.02rem;
+    padding: 13px 24px;
+    border-radius: 10px;
+    border: 1px solid var(--teal-bright);
+    margin-bottom: 18px;
+    transition: background 0.15s ease;
+  }
+  .download-btn:hover { background: var(--teal-bright); text-decoration: none; }
+  .clone-row {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    overflow-x: auto;
+  }
+  .clone-row .clone-cmd { flex: 1; color: #d2d8e0; white-space: nowrap; }
+  .copy-btn {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .copy-btn:hover { color: var(--text); border-color: var(--teal); }
+  .copy-btn.copied { color: var(--teal-bright); border-color: var(--teal-bright); }
+
+  .step-list {
+    list-style: none;
+    counter-reset: stepcounter;
+  }
+  .step-list li {
+    counter-increment: stepcounter;
+    position: relative;
+    padding: 14px 0 14px 48px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  .step-list li:last-child { border-bottom: none; }
+  .step-list li::before {
+    content: counter(stepcounter);
+    position: absolute;
+    left: 0;
+    top: 12px;
+    width: 30px; height: 30px;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--teal);
+    color: var(--teal-bright);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600;
+    font-size: 0.88rem;
+  }
+  .step-list li strong { color: #fff; }
+
+  details.collapsible {
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-top: 8px;
+  }
+  details.collapsible summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text);
+    list-style: none;
+    display: flex; align-items: center; gap: 8px;
+  }
+  details.collapsible summary::-webkit-details-marker { display: none; }
+  details.collapsible summary::before {
+    content: '▶';
+    font-size: 0.7rem;
+    color: var(--teal-bright);
+    transition: transform 0.2s ease;
+  }
+  details.collapsible[open] summary::before { transform: rotate(90deg); }
+  details.collapsible .details-body {
+    margin-top: 14px;
+    color: var(--text-dim);
+    font-size: 0.95rem;
+  }
+  details.collapsible .details-body ol {
+    padding-left: 22px;
+    margin-top: 8px;
+  }
+  details.collapsible .details-body li { padding: 4px 0; }
+
+  /* Quickstart */
+  .quickstart {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  @media (max-width: 800px) { .quickstart { grid-template-columns: 1fr; } }
+  .quick-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 28px;
+    text-align: left;
+  }
+  .quick-num {
+    font-family: var(--mono);
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--teal-bright);
+    line-height: 1;
+    margin-bottom: 14px;
+    display: block;
+  }
+  .quick-card p { color: var(--text-dim); }
+  .quick-card strong { color: var(--text); }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 0;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.92rem;
+  }
+  footer .footer-links {
+    margin-top: 12px;
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#01696F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2" fill="#01696F"/>
+      </svg>
+      FlowCapture
+    </div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#install">Install</a>
+      <a href="#quickstart">Quick start</a>
+      <a href="https://github.com/bbuxton0823/flowcapture">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="container">
+    <div class="hero-logo">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#01696F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/>
+        <circle cx="12" cy="12" r="4" fill="#01696F"/>
+        <path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+      </svg>
+    </div>
+    <h1>FlowCapture</h1>
+    <p class="subhead">Record any browser workflow as a narrated video SOP — one click, no screen recorder needed.</p>
+    <a class="cta" href="#install">⬇ Download &amp; Install</a>
+    <p class="hero-meta">Free <span>·</span> Open source <span>·</span> Chrome extension <span>·</span> No account required</p>
+  </div>
+</header>
+
+<section id="features">
+  <div class="container">
+    <h2 class="section-title">What it does</h2>
+    <p class="section-sub">Capture, narrate, and publish standard operating procedures without leaving the browser.</p>
+    <div class="features">
+      <div class="feature">
+        <span class="feature-icon">📸</span>
+        <h3>Auto-capture</h3>
+        <p>Click through any workflow and FlowCapture screenshots every step automatically — with URL, element, and timestamp.</p>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">🎬</span>
+        <h3>One-click video</h3>
+        <p>Turns captured steps into a 1080p MP4 with intro/outro, AI narration (ElevenLabs or browser TTS), and caption tracks.</p>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">📄</span>
+        <h3>PDF export</h3>
+        <p>Generates a polished PDF SOP with cover page, table of contents, role badges, and approval stamps.</p>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">🎙️</span>
+        <h3>AI Narration</h3>
+        <p>Optional ElevenLabs integration for professional voice-over. Or use built-in browser TTS — no API key needed to get started.</p>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">☁️</span>
+        <h3>Publish anywhere</h3>
+        <p>Upload directly to YouTube or Vimeo (unlisted), copy the embed URL, and paste into Yardi Aspire or any LMS.</p>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">🔒</span>
+        <h3>Local-first</h3>
+        <p>All screenshots and recordings stay in your browser. No backend, no cloud, no account required.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="install" class="install-bg">
+  <div class="container">
+    <h2 class="section-title">Install in 60 seconds</h2>
+    <p class="section-sub">Three short steps. No app store, no sign-in.</p>
+
+    <div class="install-step">
+      <h3><span class="step-badge">Step 1</span> Download</h3>
+      <a class="download-btn" href="https://github.com/bbuxton0823/flowcapture/archive/refs/heads/main.zip">⬇ Download FlowCapture.zip</a>
+      <p style="color:var(--text-dim); margin: 8px 0 12px;">Or clone with git:</p>
+      <div class="clone-row">
+        <span class="clone-cmd" id="cloneCmd">git clone https://github.com/bbuxton0823/flowcapture.git</span>
+        <button class="copy-btn" data-copy="#cloneCmd">Copy</button>
+      </div>
+    </div>
+
+    <div class="install-step">
+      <h3><span class="step-badge">Step 2</span> Load in Chrome</h3>
+      <ol class="step-list">
+        <li>Open Chrome and go to <code>chrome://extensions</code></li>
+        <li>Turn on <strong>Developer mode</strong> (toggle in the top-right)</li>
+        <li>Click <strong>"Load unpacked"</strong></li>
+        <li>Select the <code>flowcapture</code> folder you downloaded/cloned</li>
+        <li>The FlowCapture icon appears in your toolbar — you're ready!</li>
+      </ol>
+    </div>
+
+    <div class="install-step">
+      <h3><span class="step-badge">Step 3</span> Optional: AI Narration</h3>
+      <details class="collapsible">
+        <summary>Set up ElevenLabs for professional voice-over (optional)</summary>
+        <div class="details-body">
+          <ol>
+            <li>Get a free ElevenLabs API key at <a href="https://elevenlabs.io/app/settings/api-keys" target="_blank" rel="noopener">elevenlabs.io</a></li>
+            <li>Open FlowCapture → <strong>Settings</strong> → <strong>ElevenLabs</strong></li>
+            <li>Paste your key and click <strong>Load Voices</strong></li>
+          </ol>
+          <p style="margin-top: 12px;">Skip this step to use the built-in browser TTS — no API key needed.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section id="quickstart">
+  <div class="container">
+    <h2 class="section-title">Quick start</h2>
+    <p class="section-sub">From install to published video in three clicks.</p>
+    <div class="quickstart">
+      <div class="quick-card">
+        <span class="quick-num">1</span>
+        <p>Click the FlowCapture icon → <strong>"Start Capturing"</strong> → browse through your workflow.</p>
+      </div>
+      <div class="quick-card">
+        <span class="quick-num">2</span>
+        <p>Click <strong>"Stop"</strong> → review and edit steps in the Editor.</p>
+      </div>
+      <div class="quick-card">
+        <span class="quick-num">3</span>
+        <p>Click <strong>"Generate Video"</strong> or <strong>"Export PDF"</strong> — done!</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>Built for HACSM · Open source under MIT License</p>
+    <div class="footer-links">
+      <a href="https://github.com/bbuxton0823/flowcapture">GitHub repository</a>
+      <a href="https://github.com/bbuxton0823/flowcapture#readme">View full documentation</a>
+      <a href="https://github.com/bbuxton0823/flowcapture/blob/main/INSTALL.md">INSTALL.md</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const target = document.querySelector(btn.dataset.copy);
+      if (!target) return;
+      const text = target.textContent.trim();
+      try {
+        await navigator.clipboard.writeText(text);
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.classList.remove('copied');
+        }, 1600);
+      } catch (e) {
+        const range = document.createRange();
+        range.selectNode(target);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
