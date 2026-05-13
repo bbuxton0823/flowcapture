@@ -258,10 +258,18 @@ async function startRecording() {
     preview.srcObject = recordingStream;
     videoOverlay.classList.add('hidden');
 
-    // Setup MediaRecorder
-    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-      ? 'video/webm;codecs=vp9'
-      : 'video/webm;codecs=vp8';
+    // Setup MediaRecorder — prefer MP4 when the browser supports it so the
+    // recording is upload-ready for Vimeo / Yardi without a conversion step.
+    let mimeType;
+    if (typeof window.MP4Converter === 'function') {
+      const converter = new window.MP4Converter();
+      const pick = converter.getBestMimeType(true);
+      mimeType = pick.mimeType;
+    } else {
+      mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+        ? 'video/webm;codecs=vp9'
+        : 'video/webm;codecs=vp8';
+    }
 
     mediaRecorder = new MediaRecorder(recordingStream, {
       mimeType,
@@ -381,12 +389,16 @@ function clearCueTimeouts() {
 
 // ─── Download Handlers ───────────────────────────────────────────────
 
+function recordingExtension() {
+  return recordingBlob && recordingBlob.type.includes('mp4') ? 'mp4' : 'webm';
+}
+
 downloadBtn.addEventListener('click', () => {
   if (!recordingBlob) return;
   const url = URL.createObjectURL(recordingBlob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `FlowCapture_Recording_${new Date().toISOString().slice(0, 10)}.webm`;
+  a.download = `FlowCapture_Recording_${new Date().toISOString().slice(0, 10)}.${recordingExtension()}`;
   a.click();
   URL.revokeObjectURL(url);
 });
@@ -397,7 +409,7 @@ downloadTTSBtn.addEventListener('click', () => {
   const url = URL.createObjectURL(recordingBlob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `FlowCapture_Recording_Narrated_${new Date().toISOString().slice(0, 10)}.webm`;
+  a.download = `FlowCapture_Recording_Narrated_${new Date().toISOString().slice(0, 10)}.${recordingExtension()}`;
   a.click();
   URL.revokeObjectURL(url);
 });

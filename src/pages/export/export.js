@@ -444,9 +444,124 @@ backBtn.addEventListener('click', () => {
 // ─── Helpers ─────────────────────────────────────────────────────────
 
 function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str || '';
-  return div.innerHTML;
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// ─── HTML Export ─────────────────────────────────────────────────────
+
+async function exportHTML(steps, project) {
+  const stepSections = steps.map((step, i) => {
+    const imgTag = step.imageData
+      ? `<img src="${step.imageData}" alt="Step ${i + 1} screenshot" class="screenshot" />`
+      : '<div class="no-screenshot">No screenshot</div>';
+    const urlLine = step.url
+      ? `<div class="step-url"><span class="label">URL:</span> <a href="${escapeHtml(step.url)}">${escapeHtml(step.url)}</a></div>`
+      : '';
+    const selectorLine = step.elementSelector
+      ? `<div class="step-selector"><span class="label">Element:</span> <code>${escapeHtml(step.elementSelector)}</code></div>`
+      : '';
+    return `
+      <section class="step" id="step-${i + 1}">
+        <div class="step-header">
+          <span class="step-number">Step ${i + 1}</span>
+          <h2 class="step-title">${escapeHtml(step.title || '')}</h2>
+        </div>
+        ${step.description ? `<p class="step-description">${escapeHtml(step.description)}</p>` : ''}
+        ${imgTag}
+        ${urlLine}
+        ${selectorLine}
+      </section>`;
+  }).join('\n');
+
+  const toc = steps.map((step, i) =>
+    `<li><a href="#step-${i + 1}">Step ${i + 1}: ${escapeHtml(step.title || '')}</a></li>`
+  ).join('\n');
+
+  const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(project.name || 'SOP')} — FlowCapture</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.6; color: #1a1a1a; background: #fff; max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+    h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
+    .meta { color: #666; font-size: 14px; margin-bottom: 32px; }
+    nav { background: #f5f5f5; border-radius: 8px; padding: 20px 24px; margin-bottom: 40px; }
+    nav h2 { font-size: 1rem; font-weight: 600; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #666; }
+    nav ol { padding-left: 20px; }
+    nav li { margin-bottom: 4px; }
+    nav a { color: #01696F; text-decoration: none; }
+    nav a:hover { text-decoration: underline; }
+    .step { border: 1px solid #e5e5e5; border-radius: 10px; padding: 24px; margin-bottom: 32px; page-break-inside: avoid; }
+    .step-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+    .step-number { background: #01696F; color: #fff; border-radius: 20px; padding: 2px 12px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+    .step-title { font-size: 1.1rem; font-weight: 600; }
+    .step-description { color: #444; margin-bottom: 16px; }
+    .screenshot { width: 100%; border: 1px solid #ddd; border-radius: 6px; margin: 12px 0; }
+    .no-screenshot { background: #f5f5f5; border-radius: 6px; padding: 20px; text-align: center; color: #999; font-size: 13px; margin: 12px 0; }
+    .step-url, .step-selector { font-size: 13px; color: #555; margin-top: 8px; }
+    .label { font-weight: 600; margin-right: 4px; }
+    code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    a { color: #01696F; }
+    @media print { .step { page-break-inside: avoid; } nav { page-break-after: always; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>${escapeHtml(project.name || 'SOP')}</h1>
+    <p class="meta">Generated ${date} · ${steps.length} step${steps.length !== 1 ? 's' : ''} · FlowCapture</p>
+  </header>
+  <nav>
+    <h2>Table of Contents</h2>
+    <ol>${toc}</ol>
+  </nav>
+  <main>${stepSections}</main>
+</body>
+</html>`;
+
+  return html;
+}
+
+async function downloadHTML(steps, project) {
+  const html = await exportHTML(steps, project);
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const safeName = (project.name || 'SOP').replace(/[^a-z0-9\-_ ]/gi, '_');
+  await chrome.downloads.download({ url, filename: `${safeName}-SOP.html`, saveAs: false });
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+// ─── HTML Download Button ────────────────────────────────────────────
+
+const downloadHtmlBtn = document.getElementById('downloadHtml');
+if (downloadHtmlBtn) {
+  downloadHtmlBtn.addEventListener('click', async () => {
+    downloadHtmlBtn.disabled = true;
+    const originalHtml = downloadHtmlBtn.innerHTML;
+    downloadHtmlBtn.textContent = 'Generating...';
+    try {
+      const roleFilterVal = document.getElementById('roleFilter')?.value || 'all';
+      const exportSteps = steps.filter(s =>
+        roleFilterVal === 'all' || (s.role || 'all') === 'all' || (s.role || 'all') === roleFilterVal
+      );
+      await downloadHTML(exportSteps, { name: projectName });
+    } catch (err) {
+      console.error('[FlowCapture] HTML generation failed:', err);
+      alert('HTML generation failed: ' + (err?.message || 'Unknown'));
+    } finally {
+      downloadHtmlBtn.disabled = false;
+      downloadHtmlBtn.innerHTML = originalHtml;
+    }
+  });
 }
 
 // ─── Initialize ──────────────────────────────────────────────────────

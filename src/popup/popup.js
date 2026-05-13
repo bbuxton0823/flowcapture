@@ -76,7 +76,7 @@
       captureIcon.innerHTML = '<circle cx="12" cy="12" r="10"/>';
     }
 
-    const hasSteps = parseInt(stepCountEl.textContent) > 0;
+    const hasSteps = parseInt(stepCountEl.textContent, 10) > 0;
     editBtn.disabled = !hasSteps;
     videoBtn.disabled = !hasSteps;
     if (autoVideoBtn) autoVideoBtn.disabled = !hasSteps;
@@ -84,13 +84,41 @@
   }
 
   on(captureBtn, 'click', async () => {
-    isCapturing = !isCapturing;
+    captureBtn.disabled = true;
+    const desired = !isCapturing;
     const currentCount = parseInt(stepCountEl?.textContent, 10) || 0;
-    await chrome.runtime.sendMessage({
-      type: MSG.SET_CAPTURING,
-      payload: { isCapturing, stepCount: currentCount },
-    });
-    updateUI();
+    try {
+      // MV3 service workers can be suspended — retry once on connection error
+      let response;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          response = await chrome.runtime.sendMessage({
+            type: MSG.SET_CAPTURING,
+            payload: { isCapturing: desired, stepCount: currentCount },
+          });
+          break;
+        } catch (err) {
+          if (attempt === 0 && err?.message?.includes('Receiving end does not exist')) {
+            // SW was suspended — give it 200ms to wake then retry
+            await new Promise(r => setTimeout(r, 200));
+            continue;
+          }
+          throw err;
+        }
+      }
+      if (response?.success) {
+        isCapturing = desired;
+        updateUI();
+      } else {
+        console.error('[FlowCapture] SET_CAPTURING failed:', response?.error);
+        alert('Could not toggle capture. Try reloading the extension.');
+      }
+    } catch (err) {
+      console.error('[FlowCapture] Capture toggle error:', err);
+      alert('Capture error: ' + (err?.message || 'Unknown'));
+    } finally {
+      captureBtn.disabled = false;
+    }
   });
 
   on(editBtn, 'click', () => {

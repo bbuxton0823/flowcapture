@@ -128,11 +128,6 @@ class MP4Converter {
    * Falls back gracefully if it fails.
    */
   async _convertWebMtoMP4(webmBlob) {
-    // This is a simplified approach:
-    // 1. Create a video element from the WebM blob
-    // 2. Draw frames to a canvas
-    // 3. Re-record using MP4 mime type if supported
-
     const mp4Type = this.canRecordMP4();
     if (!mp4Type) {
       throw new Error('MP4 recording not supported in this browser');
@@ -141,50 +136,86 @@ class MP4Converter {
     const videoUrl = URL.createObjectURL(webmBlob);
     const video = document.createElement('video');
     video.src = videoUrl;
-    video.muted = true;
+    video.muted = false; // need audio
 
     await new Promise((resolve, reject) => {
       video.onloadedmetadata = resolve;
-      video.onerror = reject;
+      video.onerror = () => reject(new Error('Failed to load WebM for conversion'));
+      setTimeout(() => reject(new Error('Metadata load timeout')), 10000);
     });
 
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
     const ctx = canvas.getContext('2d');
 
-    const stream = canvas.captureStream(30);
-    const recorder = new MediaRecorder(stream, {
+    // Capture both video stream AND audio stream from the video element
+    const videoStream = canvas.captureStream(30);
+    let combinedStream;
+    try {
+      // Web Audio API: route video audio into a MediaStreamDestination
+      const audioCtx = new AudioContext();
+      const source = audioCtx.createMediaElementSource(video);
+      const dest = audioCtx.createMediaStreamDestination();
+      source.connect(dest);
+      source.connect(audioCtx.destination); // also play locally so video stays in sync
+      const audioTrack = dest.stream.getAudioTracks()[0];
+      if (audioTrack) {
+        combinedStream = new MediaStream([...videoStream.getVideoTracks(), audioTrack]);
+      } else {
+        combinedStream = videoStream;
+      }
+    } catch (audioErr) {
+      console.warn('[MP4Converter] Audio routing failed, converting video-only:', audioErr);
+      combinedStream = videoStream;
+    }
+
+    const recorder = new MediaRecorder(combinedStream, {
       mimeType: mp4Type,
-      videoBitsPerSecond: 4000000,
+      videoBitsPerSecond: 4_000_000,
     });
 
     const chunks = [];
     recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
 
-    const done = new Promise(r => { recorder.onstop = r; });
+    const done = new Promise((resolve, reject) => {
+      recorder.onstop = resolve;
+      recorder.onerror = (e) => reject(new Error('MediaRecorder error: ' + e.error));
+    });
 
     recorder.start(100);
+
+    // Use setInterval instead of requestAnimationFrame — rAF throttles in
+    // extension pages that aren't in the foreground tab.
+    video.currentTime = 0;
+    await new Promise(r => { video.onseeked = r; });
     video.play();
 
-    // Draw frames
-    const drawFrame = () => {
+    const frameInterval = setInterval(() => {
       if (video.ended || video.paused) {
-        recorder.stop();
+        clearInterval(frameInterval);
+        if (recorder.state !== 'inactive') recorder.stop();
         return;
       }
-      ctx.drawImage(video, 0, 0);
-      requestAnimationFrame(drawFrame);
-    };
-    drawFrame();
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    }, 1000 / 30); // 30fps
 
     video.onended = () => {
+      clearInterval(frameInterval);
       if (recorder.state !== 'inactive') recorder.stop();
     };
 
+    // Safety timeout: if video gets stuck, force-stop after duration + 5s
+    const safetyTimeout = setTimeout(() => {
+      clearInterval(frameInterval);
+      if (recorder.state !== 'inactive') recorder.stop();
+    }, (video.duration * 1000 || 60000) + 5000);
+
     await done;
+    clearTimeout(safetyTimeout);
     URL.revokeObjectURL(videoUrl);
 
+    if (chunks.length === 0) throw new Error('Conversion produced no output chunks');
     return new Blob(chunks, { type: mp4Type });
   }
 }

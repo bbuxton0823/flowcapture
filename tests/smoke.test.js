@@ -450,3 +450,131 @@ test('R3: AudioContext guard before decodeAudioData', () => {
   // The fix: check `this.audioCtx` (and destination) before decodeAudioData
   assert.match(src, /if\s*\(\s*!this\.audioCtx\s*\|\|\s*!this\.destination\s*\)/);
 });
+
+// ────────────────────────────────────────────────────────────────────
+// 12. Capture toggle retry + non-blocking SET_CAPTURING
+// ─────────────────��──────────────────────────────────────────────────
+test('CAPTURE: popup.js retries SET_CAPTURING once on SW connection loss', () => {
+  const src = readSrc('src/popup/popup.js');
+  // Loop guards retry attempts
+  assert.match(src, /for\s*\(\s*let\s+attempt\s*=\s*0;\s*attempt\s*<\s*2;\s*attempt\+\+\s*\)/);
+  // Recognises the specific MV3 SW-suspended error
+  assert.match(src, /Receiving end does not exist/);
+  // Uses a "desired" target state rather than flipping isCapturing pre-confirmation
+  assert.match(src, /const\s+desired\s*=\s*!isCapturing/);
+});
+
+test('CAPTURE: background.js sendResponse for SET_CAPTURING runs BEFORE tab broadcast', () => {
+  const src = readSrc('src/background/background.js');
+  const handlerStart = src.indexOf('case MSG.SET_CAPTURING');
+  assert.ok(handlerStart !== -1, 'SET_CAPTURING handler must exist');
+  const handlerEnd = src.indexOf('break;', handlerStart);
+  const handler = src.slice(handlerStart, handlerEnd);
+  const respIdx = handler.indexOf('sendResponse');
+  const broadcastIdx = handler.indexOf('chrome.tabs.query');
+  assert.ok(respIdx !== -1, 'sendResponse must be present');
+  assert.ok(broadcastIdx !== -1, 'tab broadcast must be present');
+  assert.ok(
+    respIdx < broadcastIdx,
+    'sendResponse must run before the tab broadcast so the popup is not blocked',
+  );
+  // The broadcast must NOT await each tab serially — should be fire-and-forget.
+  assert.doesNotMatch(handler, /for\s*\(\s*const\s+tab\s+of\s+tabs\s*\)\s*\{\s*try\s*\{\s*await\s+chrome\.tabs\.sendMessage/);
+});
+
+// ────────────────────────────────────────────────────────────────────
+// 13. HTML export
+// ────────────────────────────────────────────────────────────────────
+test('HTML EXPORT: export.js exposes exportHTML and downloadHTML functions', () => {
+  const src = readSrc('src/pages/export/export.js');
+  assert.match(src, /async\s+function\s+exportHTML\s*\(/);
+  assert.match(src, /async\s+function\s+downloadHTML\s*\(/);
+  // String-based escapeHtml (no DOM) — required so we can test it standalone
+  assert.match(src, /\.replace\(\/&\/g,\s*['"]&amp;['"]\)/);
+});
+
+test('HTML EXPORT: export.html includes "Export as HTML" button with id="downloadHtml"', () => {
+  const src = readSrc('src/pages/export/export.html');
+  assert.match(src, /id=["']downloadHtml["']/);
+  assert.match(src, /Export as HTML/);
+});
+
+// Functional test of exportHTML by extracting the function body and evaluating it.
+// We isolate exportHTML + escapeHtml from export.js (the file's top-level code
+// touches `window`/`document` so we can't require it).
+function loadExportHelpers() {
+  const src = readSrc('src/pages/export/export.js');
+  const escapeFn = src.match(/function escapeHtml\(str\) \{[\s\S]*?\n\}/)[0];
+  const exportFn = src.match(/async function exportHTML\([\s\S]*?\n\}\n/)[0];
+  // Build a small module that exports both via a returned object.
+  const code = `${escapeFn}\n${exportFn}\nreturn { escapeHtml, exportHTML };`;
+  return new Function(code)();
+}
+
+test('HTML EXPORT: exportHTML produces a valid document with correct step count', async () => {
+  const { exportHTML } = loadExportHelpers();
+  const steps = [
+    { title: 'First', description: 'Do this', url: 'https://example.com/a', imageData: 'data:image/png;base64,AAAA' },
+    { title: 'Second', description: '', url: '', imageData: null },
+    { title: 'Third', description: 'Done', url: 'https://example.com/c', imageData: 'data:image/png;base64,BBBB' },
+  ];
+  const html = await exportHTML(steps, { name: 'My SOP' });
+  assert.match(html, /<!DOCTYPE html>/);
+  assert.match(html, /<title>My SOP — FlowCapture<\/title>/);
+  // 3 step sections
+  const sectionCount = (html.match(/<section class="step"/g) || []).length;
+  assert.equal(sectionCount, 3);
+  // Step count appears in meta line — "3 steps"
+  assert.match(html, /3 steps/);
+  // Image present for steps with imageData
+  assert.match(html, /<img src="data:image\/png;base64,AAAA"/);
+  // No-screenshot placeholder for step without imageData
+  assert.match(html, /No screenshot/);
+  // TOC has 3 entries
+  const tocCount = (html.match(/<li><a href="#step-/g) || []).length;
+  assert.equal(tocCount, 3);
+});
+
+test('HTML EXPORT: exportHTML escapes HTML in step titles to prevent injection', async () => {
+  const { exportHTML } = loadExportHelpers();
+  const steps = [
+    { title: '<script>alert(1)</script>', description: '', url: '', imageData: null },
+  ];
+  const html = await exportHTML(steps, { name: 'X' });
+  assert.doesNotMatch(html, /<script>alert\(1\)<\/script>/);
+  assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+});
+
+test('HTML EXPORT: exportHTML pluralises step count correctly for a single step', async () => {
+  const { exportHTML } = loadExportHelpers();
+  const html = await exportHTML([{ title: 'Only', imageData: null }], { name: 'X' });
+  assert.match(html, /1 step ·/);
+});
+
+// ────────────────────────────────────────────────────────────────────
+// 14. WebM → MP4 conversion (audio routing + setInterval, not rAF)
+// ────────────────────────────────────────────────────────────────────
+test('MP4: _convertWebMtoMP4 uses setInterval, not requestAnimationFrame', () => {
+  const src = readSrc('src/pages/video/mp4-converter.js');
+  // Locate the converter function body and check inside it.
+  const fnIdx = src.indexOf('_convertWebMtoMP4');
+  assert.ok(fnIdx !== -1);
+  const body = src.slice(fnIdx);
+  assert.match(body, /setInterval\(/);
+  assert.doesNotMatch(body, /requestAnimationFrame\(/);
+});
+
+test('MP4: _convertWebMtoMP4 routes audio through Web Audio API', () => {
+  const src = readSrc('src/pages/video/mp4-converter.js');
+  assert.match(src, /createMediaElementSource\(video\)/);
+  assert.match(src, /createMediaStreamDestination\(\)/);
+  // Combines video + audio tracks
+  assert.match(src, /new MediaStream\(\[\.\.\.videoStream\.getVideoTracks\(\)/);
+  // Video must NOT be muted (we need audio)
+  assert.match(src, /video\.muted\s*=\s*false/);
+});
+
+test('MP4: recorder.js prefers MP4 via getBestMimeType(true)', () => {
+  const src = readSrc('src/pages/recorder/recorder.js');
+  assert.match(src, /getBestMimeType\(true\)/);
+});

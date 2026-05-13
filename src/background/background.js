@@ -145,7 +145,7 @@ async function getCurrentProject() {
     const newProject = {
       id: generateId(), name: 'My First SOP', description: '',
       createdAt: Date.now(), updatedAt: Date.now(), steps: [],
-      settings: { includeUrls: true, exportFormat: 'pdf' },
+      settings: { includeUrls: true, exportFormat: 'pdf', exportFormats: ['pdf', 'html'] },
     };
     await chrome.storage.local.set({
       [STORAGE_KEYS.PROJECTS]: [newProject],
@@ -193,7 +193,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     const project = {
       id: generateId(), name: 'My First SOP', description: '',
       createdAt: Date.now(), updatedAt: Date.now(), steps: [],
-      settings: { includeUrls: true, exportFormat: 'pdf' },
+      settings: { includeUrls: true, exportFormat: 'pdf', exportFormats: ['pdf', 'html'] },
     };
     await chrome.storage.local.set({
       [STORAGE_KEYS.PROJECTS]: [project],
@@ -234,13 +234,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           };
           await setCaptureState(newState);
           await updateBadge(newState.isCapturing, newState.stepCount);
-          const tabs = await chrome.tabs.query({});
-          for (const tab of tabs) {
-            try {
-              await chrome.tabs.sendMessage(tab.id, { type: MSG.SET_CAPTURING, payload: newState });
-            } catch (_) {}
-          }
+          // Respond immediately — don't make the popup wait for tab broadcasts
           sendResponse({ success: true, state: newState });
+          // Fire-and-forget broadcasts to all tabs (parallel, no await)
+          chrome.tabs.query({}).then(tabs => {
+            tabs.forEach(tab => {
+              chrome.tabs.sendMessage(tab.id, { type: MSG.SET_CAPTURING, payload: newState })
+                .catch(() => {}); // expected for chrome://, extension pages, etc.
+            });
+          });
           break;
         }
 
