@@ -29,8 +29,8 @@ async function saveRecording(id, blob, metadata) {
       const db = e.target.result;
       const tx = db.transaction('recordings', 'readwrite');
       tx.objectStore('recordings').put({ id, blob, ...metadata, createdAt: Date.now() });
-      tx.oncomplete = () => resolve();
-      tx.onerror = (err) => reject(err);
+      tx.oncomplete = () => { try { db.close(); } catch (_) {} resolve(); };
+      tx.onerror = (err) => { try { db.close(); } catch (_) {} reject(err); };
     };
     request.onerror = (e) => reject(e);
   });

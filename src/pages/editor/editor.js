@@ -11,6 +11,11 @@ const MSG = {
   DELETE_STEP: 'DELETE_STEP', REORDER_STEPS: 'REORDER_STEPS',
   CLEAR_STEPS: 'CLEAR_STEPS',
 };
+
+// Use the shared retry wrapper if loaded; otherwise fall back to a bare
+// sendMessage call so we never silently no-op when messaging.js is missing.
+const sendMsg = (msg) =>
+  (window.FlowCaptureMessaging?.sendMessageWithRetry || chrome.runtime.sendMessage.bind(chrome.runtime))(msg);
 const STORAGE_KEYS = {
   PROJECTS: 'flowcapture_projects',
   CURRENT_PROJECT: 'flowcapture_current_project',
@@ -98,13 +103,10 @@ async function saveProjectMeta(updates) {
   const result = await chrome.storage.local.get(STORAGE_KEYS.CURRENT_PROJECT);
   const projectId = result[STORAGE_KEYS.CURRENT_PROJECT];
   if (!projectId) return;
-  const pr = await chrome.storage.local.get(STORAGE_KEYS.PROJECTS);
-  const projects = pr[STORAGE_KEYS.PROJECTS] || [];
-  const idx = projects.findIndex(p => p.id === projectId);
-  if (idx !== -1) {
-    Object.assign(projects[idx], updates, { updatedAt: Date.now() });
-    await chrome.storage.local.set({ [STORAGE_KEYS.PROJECTS]: projects });
-  }
+  await chrome.runtime.sendMessage({
+    type: 'UPDATE_PROJECT',
+    payload: { id: projectId, patch: updates },
+  });
 }
 
 const stepsContainer = document.getElementById('stepsContainer');
@@ -118,7 +120,7 @@ const ctx = annotationCanvas.getContext('2d');
 
 async function loadSteps() {
   try {
-    const response = await chrome.runtime.sendMessage({ type: MSG.GET_STEPS });
+    const response = await sendMsg({ type: MSG.GET_STEPS });
     if (response?.success) {
       steps = response.steps || [];
       currentProject = response.project;
@@ -692,13 +694,12 @@ document.getElementById('addStepBtn').addEventListener('click', async () => {
   const title = prompt('Step title:', `Step ${steps.length + 1}`);
   if (title === null) return;
 
-  // Add step via background message (no direct storage access needed)
-  const stepId = generateId();
+  // Route through background to keep flowcapture_projects single-writer.
   if (currentProject) {
-    currentProject.steps.push({
-      id: stepId,
+    const newStep = {
+      id: generateId(),
       sequenceNumber: currentProject.steps.length + 1,
-      title: title,
+      title,
       description: '',
       url: '',
       timestamp: Date.now(),
@@ -706,15 +707,12 @@ document.getElementById('addStepBtn').addEventListener('click', async () => {
       elementText: '',
       screenshotDataUrl: '',
       annotations: [],
+    };
+    const nextSteps = [...currentProject.steps, newStep];
+    await chrome.runtime.sendMessage({
+      type: 'UPDATE_PROJECT',
+      payload: { id: currentProject.id, patch: { steps: nextSteps } },
     });
-    // Save via chrome.storage directly
-    const result = await chrome.storage.local.get(STORAGE_KEYS.PROJECTS);
-    const projects = result[STORAGE_KEYS.PROJECTS] || [];
-    const idx = projects.findIndex(p => p.id === currentProject.id);
-    if (idx !== -1) {
-      projects[idx] = { ...currentProject, updatedAt: Date.now() };
-      await chrome.storage.local.set({ [STORAGE_KEYS.PROJECTS]: projects });
-    }
   }
   await loadSteps();
 });
@@ -724,16 +722,11 @@ let titleDebounce;
 sopTitle.addEventListener('input', () => {
   clearTimeout(titleDebounce);
   titleDebounce = setTimeout(async () => {
-    if (currentProject) {
-      const result = await chrome.storage.local.get(STORAGE_KEYS.PROJECTS);
-      const projects = result[STORAGE_KEYS.PROJECTS] || [];
-      const idx = projects.findIndex(p => p.id === currentProject.id);
-      if (idx !== -1) {
-        projects[idx].name = sopTitle.value;
-        projects[idx].updatedAt = Date.now();
-        await chrome.storage.local.set({ [STORAGE_KEYS.PROJECTS]: projects });
-      }
-    }
+    if (!currentProject) return;
+    await chrome.runtime.sendMessage({
+      type: 'UPDATE_PROJECT',
+      payload: { id: currentProject.id, patch: { name: sopTitle.value } },
+    });
   }, 500);
 });
 
