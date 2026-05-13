@@ -188,6 +188,12 @@ class AudioEngine {
       console.warn('[AudioEngine] ElevenLabs: missing API key or voice ID, falling back to browser TTS');
       return this._speakBrowserTTS(text, true);
     }
+    if (!this.audioCtx || !this.destination) {
+      // ElevenLabs decoding requires an AudioContext; init() wasn't called
+      // (or was called for the 'preview' tier). Fall back gracefully.
+      console.warn('[AudioEngine] ElevenLabs: AudioContext not initialized, falling back to browser TTS');
+      return this._speakBrowserTTS(text, true);
+    }
 
     try {
       const startTime = Date.now();

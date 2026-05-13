@@ -123,11 +123,15 @@ stopSpeakBtn.addEventListener('click', () => {
 // ─── Narration Cues ──────────────────────────────────────────────────
 
 function parseTime(str) {
-  const parts = str.trim().split(':');
+  if (!str) return 0;
+  const parts = String(str).trim().split(':');
   if (parts.length === 2) {
-    return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    const m = parseInt(parts[0], 10);
+    const s = parseInt(parts[1], 10);
+    if (Number.isNaN(m) || Number.isNaN(s)) return 0;
+    return m * 60 + s;
   }
-  return parseInt(str) || 0;
+  return parseInt(str, 10) || 0;
 }
 
 function formatTime(seconds) {
@@ -142,8 +146,12 @@ function renderCues() {
     return;
   }
 
+  // Sort in place so the rendered indices match the array indices used by
+  // the delete buttons. Previously .sort() returned the sorted array but
+  // splice() ran against the unsorted `narrationCues`, deleting the wrong row.
+  narrationCues.sort((a, b) => a.time - b.time);
+
   cuesList.innerHTML = narrationCues
-    .sort((a, b) => a.time - b.time)
     .map((cue, i) => `
       <div class="cue-item">
         <span class="cue-time">${formatTime(cue.time)}</span>
@@ -154,7 +162,9 @@ function renderCues() {
 
   cuesList.querySelectorAll('.cue-delete').forEach(btn => {
     btn.addEventListener('click', () => {
-      narrationCues.splice(parseInt(btn.dataset.index), 1);
+      const idx = parseInt(btn.dataset.index, 10);
+      if (Number.isNaN(idx)) return;
+      narrationCues.splice(idx, 1);
       renderCues();
     });
   });
@@ -290,12 +300,15 @@ async function startRecording() {
     scheduleCues();
 
     // Handle stream ending (user clicks browser "Stop sharing")
-    recordingStream.getVideoTracks()[0].onended = () => {
-      if (mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
-      }
-      cleanupStream();
-    };
+    const videoTrack = recordingStream.getVideoTracks()[0];
+    if (videoTrack) {
+      videoTrack.onended = () => {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          try { mediaRecorder.stop(); } catch (_) {}
+        }
+        cleanupStream();
+      };
+    }
 
     // Update UI
     startBtn.disabled = true;
@@ -394,6 +407,18 @@ downloadTTSBtn.addEventListener('click', () => {
 startBtn.addEventListener('click', startRecording);
 stopBtn.addEventListener('click', stopRecording);
 pauseBtn.addEventListener('click', pauseRecording);
+
+// ─── Graceful shutdown ───────────────────────────────────────────────
+// If the user closes the tab mid-recording we must release the screen-capture
+// stream (otherwise Chrome shows a persistent "sharing" indicator) and cancel
+// any pending TTS cues.
+
+window.addEventListener('beforeunload', () => {
+  try { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); } catch (_) {}
+  clearCueTimeouts();
+  try { speechSynthesis.cancel(); } catch (_) {}
+  cleanupStream();
+});
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 

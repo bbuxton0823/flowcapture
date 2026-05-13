@@ -1,17 +1,27 @@
 {
   "name": "flowcapture",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "1.6.2",
+  "description": "Chrome MV3 extension: capture, annotate, narrate, and publish Standard Operating Procedures.",
+  "private": true,
   "directories": {
     "lib": "lib"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"No test runner configured — see CHANGELOG for the JSDOM harness used during release.\" && exit 0"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "chrome-extension",
+    "manifest-v3",
+    "sop",
+    "screenshot",
+    "video",
+    "tts",
+    "elevenlabs",
+    "youtube",
+    "vimeo"
+  ],
+  "author": "FlowCapture contributors",
+  "license": "MIT",
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.10",
     "@ffmpeg/util": "^0.12.1",

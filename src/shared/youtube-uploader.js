@@ -89,10 +89,11 @@
         throw new Error(`Token exchange failed: ${text}`);
       }
       const data = await res.json();
+      if (!data.access_token) throw new Error('Token exchange response missing access_token');
       return {
         accessToken: data.access_token,
         refreshToken: data.refresh_token,
-        tokenExpiresAt: Date.now() + (data.expires_in - 60) * 1000,
+        tokenExpiresAt: Date.now() + (Math.max(0, Number(data.expires_in) || 0) - 60) * 1000,
       };
     },
 
@@ -113,9 +114,10 @@
       });
       if (!res.ok) throw new Error(`Token refresh failed: ${await res.text()}`);
       const data = await res.json();
+      if (!data.access_token) throw new Error('Token refresh response missing access_token');
       return {
         accessToken: data.access_token,
-        tokenExpiresAt: Date.now() + (data.expires_in - 60) * 1000,
+        tokenExpiresAt: Date.now() + (Math.max(0, Number(data.expires_in) || 0) - 60) * 1000,
       };
     },
 
@@ -147,8 +149,13 @@
      * @returns {Promise<{videoId, watchUrl, embedUrl, embedIframe}>}
      */
     async uploadVideo(videoBlob, meta, onProgress) {
+      if (!(videoBlob instanceof Blob) || videoBlob.size === 0) {
+        throw new Error('Cannot upload an empty video');
+      }
+      meta = meta || {};
       const accessToken = await this.getValidAccessToken();
-      const privacyStatus = meta.privacyStatus || 'unlisted';
+      const allowedPrivacy = ['public', 'unlisted', 'private'];
+      const privacyStatus = allowedPrivacy.includes(meta.privacyStatus) ? meta.privacyStatus : 'unlisted';
 
       const metadata = {
         snippet: {

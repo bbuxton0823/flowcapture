@@ -7,6 +7,19 @@
  * Self-contained (no ES module imports) for Manifest V3 compatibility.
  */
 
+// Tiny logger shim — service workers cannot `import` the shared logger module
+// without ES modules in MV3, so we inline a minimal version here.
+const log = {
+  info: (...a) => console.log('[FlowCapture:background]', ...a),
+  warn: (...a) => console.warn('[FlowCapture:background]', ...a),
+  error: (...a) => console.error('[FlowCapture:background]', ...a),
+};
+
+// Hard cap on captured steps per project. Beyond this the extension becomes
+// sluggish (chrome.storage.local has a 10MB total quota) and PDF/video
+// generation OOMs. Surface a clear error instead of silently corrupting.
+const MAX_STEPS_PER_PROJECT = 500;
+
 const MSG = {
   CAPTURE_STEP: 'CAPTURE_STEP',
   DELETE_STEP: 'DELETE_STEP',
@@ -192,7 +205,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     chrome.tabs.create({
       url: chrome.runtime.getURL('src/pages/onboarding/onboarding.html'),
     });
-    console.log('[FlowCapture] Installed — default project created, onboarding opened.');
+    log.info('Installed — default project created, onboarding opened.');
   }
 
   // On update: show onboarding if user hasn't completed it yet
@@ -202,7 +215,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       chrome.tabs.create({
         url: chrome.runtime.getURL('src/pages/onboarding/onboarding.html'),
       });
-      console.log('[FlowCapture] Updated — onboarding not yet completed, reopening.');
+      log.info('Updated — onboarding not yet completed, reopening.');
     }
   }
 });
@@ -246,6 +259,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
 
           const project = await getCurrentProject();
+          if (project.steps.length >= MAX_STEPS_PER_PROJECT) {
+            sendResponse({
+              success: false,
+              error: `Step limit reached (${MAX_STEPS_PER_PROJECT}). Export or split this SOP before capturing more.`,
+            });
+            break;
+          }
+
+          // Validate sender — only capture if request came from a real tab
+          // we can capture (skip chrome:// pages, the new-tab page, etc.).
+          const tabId = sender?.tab?.id;
+          if (tabId == null) {
+            sendResponse({ success: false, error: 'Capture request missing tab context' });
+            break;
+          }
+
           let screenshotDataUrl;
           try {
             screenshotDataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png', quality: 92 });
@@ -351,8 +380,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ success: false, error: `Unknown: ${message.type}` });
       }
     } catch (error) {
-      console.error('[FlowCapture] Error:', error);
-      sendResponse({ success: false, error: error.message });
+      log.error('Message handler error:', error);
+      sendResponse({ success: false, error: error?.message || 'Internal error' });
     }
   })();
   return true;
@@ -361,14 +390,35 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // ─── Tab Updated (notify content scripts) ────────────────────────────
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
-  if (changeInfo.status === 'complete') {
+  if (changeInfo.status !== 'complete') return;
+  try {
     const state = await getCaptureState();
     if (state.isCapturing) {
       try {
         await chrome.tabs.sendMessage(tabId, { type: MSG.SET_CAPTURING, payload: state });
-      } catch (_) {}
+      } catch (_) {
+        // Tabs without the content script (chrome://, extension pages) reject
+        // sendMessage. Expected; don't spam the log.
+      }
     }
+  } catch (err) {
+    log.warn('tabs.onUpdated handler failed:', err);
   }
 });
 
-console.log('[FlowCapture] Service worker loaded.');
+// ─── Graceful shutdown ───────────────────────────────────────────────
+// MV3 suspends the service worker after ~30s of idle. Close the DB so the
+// next wake-up reopens cleanly instead of inheriting a possibly-stale handle.
+chrome.runtime.onSuspend.addListener(() => {
+  try {
+    if (dbInstance) {
+      dbInstance.close();
+      dbInstance = null;
+      log.info('IndexedDB connection closed for suspend.');
+    }
+  } catch (err) {
+    log.warn('Suspend cleanup failed:', err);
+  }
+});
+
+log.info('Service worker loaded.');

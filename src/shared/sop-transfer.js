@@ -23,6 +23,13 @@ const SOPTransfer = {
   FILE_EXTENSION: '.flowcapture',
   MIME_TYPE: 'application/json',
 
+  // Hard cap on import size. .flowcapture files inline base64 screenshots,
+  // so a 200-step SOP at 1080p can legitimately reach ~80MB. Anything past
+  // 250MB is almost certainly malicious or a wrong file — refuse it before
+  // we try to parse it (parsing a 1GB JSON locks the tab for minutes).
+  MAX_IMPORT_BYTES: 250 * 1024 * 1024,
+  MAX_STEPS_PER_IMPORT: 1000,
+
   /**
    * Export the current project as a .flowcapture file blob.
    * Bundles project metadata + all step screenshots into one portable JSON file.
@@ -117,6 +124,12 @@ const SOPTransfer = {
    * @returns {Object} - { project, stepCount, warnings }
    */
   async importProject(file) {
+    if (!file) throw new Error('No file provided');
+    if (file.size > SOPTransfer.MAX_IMPORT_BYTES) {
+      const mb = Math.round(SOPTransfer.MAX_IMPORT_BYTES / 1024 / 1024);
+      throw new Error(`File too large (limit ${mb} MB). Split the SOP or remove screenshots.`);
+    }
+
     const text = await file.text();
     let data;
 
@@ -126,9 +139,20 @@ const SOPTransfer = {
       throw new Error('Invalid file format. Expected a .flowcapture JSON file.');
     }
 
+    if (!data || typeof data !== 'object') {
+      throw new Error('File did not contain an object at the top level.');
+    }
+
     // Validate format
     if (!data._flowcapture) {
       throw new Error('This file is not a FlowCapture export. Please select a .flowcapture file.');
+    }
+
+    if (data.steps && !Array.isArray(data.steps)) {
+      throw new Error('File is malformed: steps must be an array.');
+    }
+    if (Array.isArray(data.steps) && data.steps.length > SOPTransfer.MAX_STEPS_PER_IMPORT) {
+      throw new Error(`File contains too many steps (${data.steps.length}). Limit is ${SOPTransfer.MAX_STEPS_PER_IMPORT}.`);
     }
 
     const warnings = [];
