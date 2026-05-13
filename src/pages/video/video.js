@@ -160,22 +160,58 @@
   ttsPitchInput.addEventListener('input', () => { pitchLabelEl.textContent = ttsPitchInput.value; });
 
   // ─── ElevenLabs UI ───────────────────────────────────────────────
+  // Unified storage: read from the same settings section as Settings page
+  // (window.FlowCaptureSettings). The legacy `flowcapture_elevenlabs` key
+  // is migrated on first load so existing users don't lose their key.
 
-  chrome.storage.local.get('flowcapture_elevenlabs', (result) => {
-    const saved = result.flowcapture_elevenlabs || {};
-    if (saved.apiKey) elApiKey.value = saved.apiKey;
-    if (saved.voiceId) elVoice.dataset.savedVoiceId = saved.voiceId;
-    if (saved.model) elModel.value = saved.model;
-  });
+  (async () => {
+    try {
+      let saved = null;
+      if (window.FlowCaptureSettings) {
+        const section = await window.FlowCaptureSettings.getSection('elevenLabs');
+        saved = {
+          apiKey: section.apiKey || '',
+          voiceId: section.defaultVoiceId || '',
+          model: section.defaultModel || '',
+        };
+      }
+      // Migrate from legacy key if unified store is empty.
+      if (!saved || !saved.apiKey) {
+        const legacy = await new Promise(resolve =>
+          chrome.storage.local.get('flowcapture_elevenlabs', r => resolve(r.flowcapture_elevenlabs || {}))
+        );
+        if (legacy.apiKey && window.FlowCaptureSettings) {
+          await window.FlowCaptureSettings.updateSection('elevenLabs', {
+            apiKey: legacy.apiKey,
+            defaultVoiceId: legacy.voiceId || '',
+            defaultModel: legacy.model || 'eleven_multilingual_v2',
+          });
+          saved = { apiKey: legacy.apiKey, voiceId: legacy.voiceId || '', model: legacy.model || '' };
+          // Remove the legacy key — we have a single source of truth now.
+          chrome.storage.local.remove('flowcapture_elevenlabs');
+        } else {
+          saved = saved || { apiKey: '', voiceId: '', model: '' };
+        }
+      }
+      if (saved.apiKey) elApiKey.value = saved.apiKey;
+      if (saved.voiceId) elVoice.dataset.savedVoiceId = saved.voiceId;
+      if (saved.model) elModel.value = saved.model;
+    } catch (err) {
+      console.warn('[FlowCapture:video] Failed to load ElevenLabs settings:', err);
+    }
+  })();
 
-  function saveElevenLabsConfig() {
-    chrome.storage.local.set({
-      flowcapture_elevenlabs: {
-        apiKey: elApiKey.value,
-        voiceId: elVoice.value,
-        model: elModel.value,
-      },
-    });
+  async function saveElevenLabsConfig() {
+    if (!window.FlowCaptureSettings) return;
+    try {
+      await window.FlowCaptureSettings.updateSection('elevenLabs', {
+        apiKey: elApiKey.value.trim(),
+        defaultVoiceId: elVoice.value,
+        defaultModel: elModel.value,
+      });
+    } catch (err) {
+      console.warn('[FlowCapture:video] Failed to save ElevenLabs settings:', err);
+    }
   }
 
   elApiKey.addEventListener('change', saveElevenLabsConfig);
@@ -236,7 +272,7 @@
     if (audioEngine) audioEngine.destroy();
     const tier = getSelectedTier();
     const config = {
-      voice: parseInt(ttsVoiceSelect.value) || 0,
+      voice: parseInt(ttsVoiceSelect.value, 10) || 0,
       rate: parseFloat(ttsRateInput.value),
       pitch: parseFloat(ttsPitchInput.value),
       elevenLabsKey: elApiKey.value.trim(),
@@ -285,14 +321,14 @@
 
     stepsList.querySelectorAll('.step-narration').forEach(ta => {
       ta.addEventListener('input', (e) => {
-        steps[parseInt(e.target.dataset.index)]._narration = e.target.value;
+        steps[parseInt(e.target.dataset.index, 10)]._narration = e.target.value;
       });
     });
 
     stepsList.querySelectorAll('.step-item').forEach(item => {
       item.addEventListener('click', (e) => {
         if (e.target.tagName === 'TEXTAREA') return;
-        previewIndex = parseInt(item.dataset.index);
+        previewIndex = parseInt(item.dataset.index, 10);
         renderFrame(previewIndex);
         overlay.classList.add('hidden');
       });
@@ -537,11 +573,12 @@
 
     // Reset exposed state so any sibling UI (e.g. Publish panel) hides/disables
     videoBlob = null;
+    if (typeof guidanceShown !== 'undefined') guidanceShown = false;
     publishVideoState(false);
 
     const { width, height } = getResolution();
     canvas.width = width; canvas.height = height;
-    const pauseMs = parseInt(pauseDurationSelect.value);
+    const pauseMs = Math.max(0, parseInt(pauseDurationSelect.value, 10) || 1000);
     const transition = transitionSelect.value;
     const tier = getSelectedTier();
 
@@ -667,6 +704,10 @@
       recorder.stop();
       await recordingDone;
       engine.destroy();
+      // Release the canvas + audio tracks so they don't keep running in the
+      // background after generation completes (memory + CPU leak otherwise).
+      try { combinedStream.getTracks().forEach(t => t.stop()); } catch (_) {}
+      try { canvasStream.getTracks().forEach(t => t.stop()); } catch (_) {}
 
       let rawBlob = new Blob(chunks, { type: mimeType });
 
@@ -739,9 +780,13 @@
   // ─── Download Handlers ───────────────────────────────────────────
 
   // Single video download
+  let guidanceShown = false;
   downloadBtn.addEventListener('click', () => {
     if (!videoBlob) return;
-    if (videoBlob._guidance) alert(videoBlob._guidance);
+    if (videoBlob._guidance && !guidanceShown) {
+      alert(videoBlob._guidance);
+      guidanceShown = true;
+    }
     triggerDownload(videoBlob, videoBlob._filename || `${sanitizeFilename(projectName)}_SOP_Video.${videoBlob._format || 'webm'}`);
   });
 
@@ -842,7 +887,7 @@
     const step = steps[previewIndex];
     const u = new SpeechSynthesisUtterance(getNarrationText(step, previewIndex));
     const voices = speechSynthesis.getVoices();
-    if (voices[parseInt(ttsVoiceSelect.value)]) u.voice = voices[parseInt(ttsVoiceSelect.value)];
+    if (voices[parseInt(ttsVoiceSelect.value, 10)]) u.voice = voices[parseInt(ttsVoiceSelect.value, 10)];
     u.rate = parseFloat(ttsRateInput.value);
     speechSynthesis.speak(u);
     previewIndex = (previewIndex + 1) % steps.length;
@@ -899,6 +944,12 @@
 
   updateTierUI();
   loadSteps().then(() => maybeAutoStart());
+
+  // Cancel any in-progress narration / audio context when the tab is closed.
+  window.addEventListener('beforeunload', () => {
+    try { speechSynthesis.cancel(); } catch (_) {}
+    if (audioEngine) { try { audioEngine.destroy(); } catch (_) {} }
+  });
 
   // ─── v1.6: Auto Video mode ───────────────────────────────────────
   // When opened with ?auto=1, apply sensible defaults and kick off

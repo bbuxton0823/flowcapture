@@ -18,18 +18,26 @@
     CURRENT_PROJECT: 'flowcapture_current_project',
   };
 
-  const captureBtn = document.getElementById('captureBtn');
-  const captureBtnText = document.getElementById('captureBtnText');
-  const captureIcon = document.getElementById('captureIcon');
-  const stepCountEl = document.getElementById('stepCount');
-  const editBtn = document.getElementById('editBtn');
-  const recordBtn = document.getElementById('recordBtn');
-  const videoBtn = document.getElementById('videoBtn');
-  const autoVideoBtn = document.getElementById('autoVideoBtn');
-  const exportBtn = document.getElementById('exportBtn');
-  const clearBtn = document.getElementById('clearBtn');
-  const newProjectBtn = document.getElementById('newProjectBtn');
-  const projectNameInput = document.getElementById('projectName');
+  function $(id) { return document.getElementById(id); }
+  function on(el, evt, fn) { if (el) el.addEventListener(evt, fn); }
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s == null ? '' : String(s);
+    return div.innerHTML;
+  }
+
+  const captureBtn = $('captureBtn');
+  const captureBtnText = $('captureBtnText');
+  const captureIcon = $('captureIcon');
+  const stepCountEl = $('stepCount');
+  const editBtn = $('editBtn');
+  const recordBtn = $('recordBtn');
+  const videoBtn = $('videoBtn');
+  const autoVideoBtn = $('autoVideoBtn');
+  const exportBtn = $('exportBtn');
+  const clearBtn = $('clearBtn');
+  const newProjectBtn = $('newProjectBtn');
+  const projectNameInput = $('projectName');
 
   let isCapturing = false;
   let currentProject = null;
@@ -75,9 +83,9 @@
     exportBtn.disabled = !hasSteps;
   }
 
-  captureBtn.addEventListener('click', async () => {
+  on(captureBtn, 'click', async () => {
     isCapturing = !isCapturing;
-    const currentCount = parseInt(stepCountEl.textContent) || 0;
+    const currentCount = parseInt(stepCountEl?.textContent, 10) || 0;
     await chrome.runtime.sendMessage({
       type: MSG.SET_CAPTURING,
       payload: { isCapturing, stepCount: currentCount },
@@ -85,47 +93,45 @@
     updateUI();
   });
 
-  editBtn.addEventListener('click', () => {
+  on(editBtn, 'click', () => {
     chrome.tabs.create({ url: chrome.runtime.getURL('src/pages/editor/editor.html') });
     window.close();
   });
 
-  recordBtn.addEventListener('click', () => {
+  on(recordBtn, 'click', () => {
     chrome.tabs.create({ url: chrome.runtime.getURL('src/pages/recorder/recorder.html') });
     window.close();
   });
 
-  videoBtn.addEventListener('click', () => {
+  on(videoBtn, 'click', () => {
     chrome.tabs.create({ url: chrome.runtime.getURL('src/pages/video/video.html') });
     window.close();
   });
 
-  // ── Auto Video (v1.6): one-click Screenshots → narrated video ──
-  if (autoVideoBtn) {
-    autoVideoBtn.addEventListener('click', () => {
-      const url = chrome.runtime.getURL('src/pages/video/video.html') + '?auto=1';
-      chrome.tabs.create({ url });
-      window.close();
-    });
-  }
+  // Auto Video (v1.6): one-click Screenshots → narrated video
+  on(autoVideoBtn, 'click', () => {
+    const url = chrome.runtime.getURL('src/pages/video/video.html') + '?auto=1';
+    chrome.tabs.create({ url });
+    window.close();
+  });
 
-  exportBtn.addEventListener('click', () => {
+  on(exportBtn, 'click', () => {
     chrome.tabs.create({ url: chrome.runtime.getURL('src/pages/export/export.html') });
     window.close();
   });
 
   // ── Export SOP ──
-  document.getElementById('exportSopBtn').addEventListener('click', async () => {
+  on($('exportSopBtn'), 'click', async () => {
     try {
       const { filename, stepCount, sizeMB } = await SOPTransfer.downloadExport();
       alert(`Exported "${filename}" (${stepCount} steps, ${sizeMB} MB).\n\nShare this file with your PCO or manager to review and edit.`);
     } catch (err) {
-      alert('Export failed: ' + err.message);
+      alert('Export failed: ' + (err?.message || 'Unknown error'));
     }
   });
 
   // ── Import SOP ──
-  document.getElementById('importSopBtn').addEventListener('click', async () => {
+  on($('importSopBtn'), 'click', async () => {
     const result = await SOPTransfer.promptImport();
     if (!result) return;
     if (result.error) {
@@ -134,7 +140,7 @@
     }
 
     let msg = `Imported "${result.originalName}" (${result.stepCount} steps).\n\nThe SOP is now loaded and fully editable.`;
-    if (result.warnings.length > 0) {
+    if (result.warnings?.length > 0) {
       msg += '\n\nWarnings:\n' + result.warnings.join('\n');
     }
     alert(msg);
@@ -143,73 +149,75 @@
     await loadState();
   });
 
-  clearBtn.addEventListener('click', async () => {
+  on(clearBtn, 'click', async () => {
     if (confirm('Clear all captured steps? This cannot be undone.')) {
       await chrome.runtime.sendMessage({ type: MSG.CLEAR_STEPS });
-      stepCountEl.textContent = '0';
+      if (stepCountEl) stepCountEl.textContent = '0';
       isCapturing = false;
       updateUI();
     }
   });
 
-  newProjectBtn.addEventListener('click', async () => {
-    const name = prompt('New SOP name:', 'Untitled SOP');
-    if (name) {
-      const newProject = {
-        id: generateId(), name, description: '',
-        createdAt: Date.now(), updatedAt: Date.now(), steps: [],
-        settings: { includeUrls: true, exportFormat: 'pdf' },
-      };
-      const result = await chrome.storage.local.get(STORAGE_KEYS.PROJECTS);
-      const projects = result[STORAGE_KEYS.PROJECTS] || [];
-      projects.push(newProject);
-      await chrome.storage.local.set({
-        [STORAGE_KEYS.PROJECTS]: projects,
-        [STORAGE_KEYS.CURRENT_PROJECT]: newProject.id,
-      });
-      projectNameInput.value = name;
-      stepCountEl.textContent = '0';
-      isCapturing = false;
-      updateUI();
-    }
+  on(newProjectBtn, 'click', async () => {
+    const rawName = prompt('New SOP name:', 'Untitled SOP');
+    if (!rawName) return;
+    const name = rawName.trim().slice(0, 200);
+    if (!name) return;
+
+    const newProject = {
+      id: generateId(), name, description: '',
+      createdAt: Date.now(), updatedAt: Date.now(), steps: [],
+      settings: { includeUrls: true, exportFormat: 'pdf' },
+    };
+    const result = await chrome.storage.local.get(STORAGE_KEYS.PROJECTS);
+    const projects = result[STORAGE_KEYS.PROJECTS] || [];
+    projects.push(newProject);
+    await chrome.storage.local.set({
+      [STORAGE_KEYS.PROJECTS]: projects,
+      [STORAGE_KEYS.CURRENT_PROJECT]: newProject.id,
+    });
+    if (projectNameInput) projectNameInput.value = name;
+    if (stepCountEl) stepCountEl.textContent = '0';
+    isCapturing = false;
+    updateUI();
   });
 
   let nameDebounce;
-  projectNameInput.addEventListener('input', () => {
+  on(projectNameInput, 'input', () => {
     clearTimeout(nameDebounce);
     nameDebounce = setTimeout(async () => {
-      if (currentProject) {
-        const result = await chrome.storage.local.get(STORAGE_KEYS.PROJECTS);
-        const projects = result[STORAGE_KEYS.PROJECTS] || [];
-        const idx = projects.findIndex(p => p.id === currentProject.id);
-        if (idx !== -1) {
-          projects[idx].name = projectNameInput.value;
-          projects[idx].updatedAt = Date.now();
-          await chrome.storage.local.set({ [STORAGE_KEYS.PROJECTS]: projects });
-        }
+      if (!currentProject) return;
+      const result = await chrome.storage.local.get(STORAGE_KEYS.PROJECTS);
+      const projects = result[STORAGE_KEYS.PROJECTS] || [];
+      const idx = projects.findIndex(p => p.id === currentProject.id);
+      if (idx !== -1) {
+        projects[idx].name = projectNameInput.value.trim().slice(0, 200) || 'Untitled SOP';
+        projects[idx].updatedAt = Date.now();
+        await chrome.storage.local.set({ [STORAGE_KEYS.PROJECTS]: projects });
       }
     }, 500);
   });
 
   // ── Team Sync (Optional Google Drive) ──────────────────────────
-  const teamSyncToggle = document.getElementById('teamSyncToggle');
-  const teamSyncPanel = document.getElementById('teamSyncPanel');
-  const syncChevron = document.getElementById('syncChevron');
-  const syncBadge = document.getElementById('syncBadge');
-  const syncSignedOut = document.getElementById('syncSignedOut');
-  const syncSignedIn = document.getElementById('syncSignedIn');
-  const syncUserEmail = document.getElementById('syncUserEmail');
-  const syncStatus = document.getElementById('syncStatus');
+  const teamSyncToggle = $('teamSyncToggle');
+  const teamSyncPanel = $('teamSyncPanel');
+  const syncBadge = $('syncBadge');
+  const syncSignedOut = $('syncSignedOut');
+  const syncSignedIn = $('syncSignedIn');
+  const syncUserEmail = $('syncUserEmail');
+  const syncStatus = $('syncStatus');
 
   let syncPanelOpen = false;
 
-  teamSyncToggle.addEventListener('click', () => {
+  on(teamSyncToggle, 'click', () => {
+    if (!teamSyncPanel || !teamSyncToggle) return;
     syncPanelOpen = !syncPanelOpen;
     teamSyncPanel.style.display = syncPanelOpen ? 'block' : 'none';
     teamSyncToggle.classList.toggle('open', syncPanelOpen);
   });
 
   function showSyncStatus(message, type = 'loading') {
+    if (!syncStatus) return;
     syncStatus.textContent = message;
     syncStatus.className = 'sync-status ' + type;
     syncStatus.style.display = 'block';
@@ -224,60 +232,60 @@
       const signedIn = await DriveSync.isSignedIn();
       if (signedIn) {
         const userInfo = await DriveSync.getUserInfo();
-        syncSignedOut.style.display = 'none';
-        syncSignedIn.style.display = 'block';
-        syncUserEmail.textContent = userInfo.email || 'Connected';
-        syncBadge.style.display = 'inline';
+        if (syncSignedOut) syncSignedOut.style.display = 'none';
+        if (syncSignedIn) syncSignedIn.style.display = 'block';
+        if (syncUserEmail) syncUserEmail.textContent = userInfo.email || 'Connected';
+        if (syncBadge) syncBadge.style.display = 'inline';
       } else {
-        syncSignedOut.style.display = 'block';
-        syncSignedIn.style.display = 'none';
-        syncBadge.style.display = 'none';
+        if (syncSignedOut) syncSignedOut.style.display = 'block';
+        if (syncSignedIn) syncSignedIn.style.display = 'none';
+        if (syncBadge) syncBadge.style.display = 'none';
       }
     } catch {
-      syncSignedOut.style.display = 'block';
-      syncSignedIn.style.display = 'none';
-      syncBadge.style.display = 'none';
+      if (syncSignedOut) syncSignedOut.style.display = 'block';
+      if (syncSignedIn) syncSignedIn.style.display = 'none';
+      if (syncBadge) syncBadge.style.display = 'none';
     }
   }
 
   // Sign In
-  document.getElementById('driveSignInBtn').addEventListener('click', async () => {
+  on($('driveSignInBtn'), 'click', async () => {
     try {
       showSyncStatus('Connecting to Google Drive...', 'loading');
       await DriveSync.signIn(true);
       await checkDriveConnection();
       showSyncStatus('Connected!', 'success');
     } catch (err) {
-      showSyncStatus('Connection failed: ' + err.message, 'error');
+      showSyncStatus('Connection failed: ' + (err?.message || 'Unknown error'), 'error');
     }
   });
 
   // Sign Out
-  document.getElementById('driveSignOutBtn').addEventListener('click', async () => {
+  on($('driveSignOutBtn'), 'click', async () => {
     try {
       await DriveSync.signOut();
-      syncSignedOut.style.display = 'block';
-      syncSignedIn.style.display = 'none';
-      syncBadge.style.display = 'none';
+      if (syncSignedOut) syncSignedOut.style.display = 'block';
+      if (syncSignedIn) syncSignedIn.style.display = 'none';
+      if (syncBadge) syncBadge.style.display = 'none';
       showSyncStatus('Disconnected', 'success');
     } catch (err) {
-      showSyncStatus('Error: ' + err.message, 'error');
+      showSyncStatus('Error: ' + (err?.message || 'Unknown error'), 'error');
     }
   });
 
   // Save to Drive
-  document.getElementById('driveSaveBtn').addEventListener('click', async () => {
+  on($('driveSaveBtn'), 'click', async () => {
     try {
       showSyncStatus('Saving to Drive...', 'loading');
-      const result = await DriveSync.saveCurrentToDrive();
+      await DriveSync.saveCurrentToDrive();
       showSyncStatus('Saved to Drive!', 'success');
     } catch (err) {
-      showSyncStatus('Save failed: ' + err.message, 'error');
+      showSyncStatus('Save failed: ' + (err?.message || 'Unknown error'), 'error');
     }
   });
 
   // Open from Drive
-  document.getElementById('driveOpenBtn').addEventListener('click', async () => {
+  on($('driveOpenBtn'), 'click', async () => {
     try {
       showSyncStatus('Loading files from Drive...', 'loading');
       const files = await DriveSync.listSOPs();
@@ -287,24 +295,30 @@
         return;
       }
 
-      // Build a simple file picker
-      let existingList = document.getElementById('driveFileListContainer');
+      const existingList = $('driveFileListContainer');
       if (existingList) existingList.remove();
 
       const container = document.createElement('div');
       container.id = 'driveFileListContainer';
       container.className = 'drive-file-list';
 
+      // Build list with safe DOM construction (Drive file names + modifiedBy
+      // are not trusted — they come from arbitrary Google accounts that share
+      // the team folder. innerHTML interpolation here would be XSS.)
       files.forEach(f => {
         const item = document.createElement('div');
         item.className = 'drive-file-item';
-        const modified = new Date(f.modifiedTime).toLocaleDateString();
-        item.innerHTML = `
-          <div>
-            <div class="drive-file-name">${f.name}</div>
-            <div class="drive-file-meta">${f.modifiedBy} · ${modified}</div>
-          </div>
-        `;
+        const left = document.createElement('div');
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'drive-file-name';
+        nameDiv.textContent = f.name || '(unnamed)';
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'drive-file-meta';
+        const modified = f.modifiedTime ? new Date(f.modifiedTime).toLocaleDateString() : '';
+        metaDiv.textContent = `${f.modifiedBy || 'Unknown'} · ${modified}`;
+        left.appendChild(nameDiv);
+        left.appendChild(metaDiv);
+        item.appendChild(left);
         item.addEventListener('click', async () => {
           try {
             showSyncStatus('Importing from Drive...', 'loading');
@@ -313,27 +327,27 @@
             container.remove();
             await loadState();
           } catch (err) {
-            showSyncStatus('Import failed: ' + err.message, 'error');
+            showSyncStatus('Import failed: ' + (err?.message || 'Unknown error'), 'error');
           }
         });
         container.appendChild(item);
       });
 
-      syncSignedIn.appendChild(container);
-      syncStatus.style.display = 'none';
+      if (syncSignedIn) syncSignedIn.appendChild(container);
+      if (syncStatus) syncStatus.style.display = 'none';
     } catch (err) {
-      showSyncStatus('Failed to load: ' + err.message, 'error');
+      showSyncStatus('Failed to load: ' + (err?.message || 'Unknown error'), 'error');
     }
   });
 
   // ── Help / Onboarding ──────────────────────────────────
-  document.getElementById('helpBtn').addEventListener('click', () => {
+  on($('helpBtn'), 'click', () => {
     chrome.tabs.create({ url: chrome.runtime.getURL('src/pages/onboarding/onboarding.html') });
     window.close();
   });
 
   // ── Settings (API keys & integrations) ─────────────────
-  document.getElementById('settingsBtn').addEventListener('click', () => {
+  on($('settingsBtn'), 'click', () => {
     chrome.tabs.create({ url: chrome.runtime.getURL('src/pages/settings/settings.html') });
     window.close();
   });

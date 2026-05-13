@@ -36,6 +36,17 @@ const DriveSync = {
    * Returns the access token or throws on failure.
    */
   async signIn(interactive = true) {
+    // The extension's manifest must include an oauth2.client_id that matches
+    // the developer's Google Cloud OAuth credentials. The shipped manifest
+    // contains a placeholder — surface a clear error instead of Chrome's
+    // generic "OAuth2 not granted or revoked." so users know to follow setup.
+    const manifest = chrome.runtime.getManifest?.();
+    const clientId = manifest?.oauth2?.client_id || '';
+    if (!clientId || /^YOUR_GOOGLE_CLIENT_ID/i.test(clientId)) {
+      throw new Error(
+        'Google Drive sync is not configured. Add your OAuth client ID to manifest.json — see README "Google Drive setup".'
+      );
+    }
     return new Promise((resolve, reject) => {
       chrome.identity.getAuthToken({ interactive }, (token) => {
         if (chrome.runtime.lastError) {
@@ -57,8 +68,17 @@ const DriveSync = {
   async signOut() {
     const token = await DriveSync.signIn(false).catch(() => null);
     if (token) {
-      // Revoke the token with Google
-      await fetch(`https://accounts.google.com/o/oauth2/revoke?token=${token}`).catch(() => {});
+      // Revoke the token with Google. POST + form body so the token isn't
+      // recorded in the URL (browser history, proxy logs, referer headers).
+      try {
+        await fetch('https://oauth2.googleapis.com/revoke', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'token=' + encodeURIComponent(token),
+        });
+      } catch (_) {
+        // Revocation is best-effort; we still clear the local cache below.
+      }
       // Remove from Chrome's cache
       await new Promise((resolve) => {
         chrome.identity.removeCachedAuthToken({ token }, resolve);
@@ -66,6 +86,14 @@ const DriveSync = {
     }
     // Clear stored config
     await chrome.storage.local.remove(DriveSync.STORAGE_KEY);
+  },
+
+  /**
+   * Escape a value for safe inclusion inside a Drive `q=` query string.
+   * Drive uses single-quote delimited literals with backslash escapes.
+   */
+  _escapeQ(value) {
+    return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   },
 
   /**
@@ -127,7 +155,7 @@ const DriveSync = {
 
     // Search for existing FlowCapture folder
     const token = await DriveSync.signIn(false);
-    const query = `name='${DriveSync.FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+    const query = `name='${DriveSync._escapeQ(DriveSync.FOLDER_NAME)}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
     const searchUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`;
 
     const searchResp = await fetch(searchUrl, {
@@ -187,7 +215,7 @@ const DriveSync = {
     if (existingFileId) {
       // Update existing file
       const response = await fetch(
-        `https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=media`,
+        `https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(existingFileId)}?uploadType=media`,
         {
           method: 'PATCH',
           headers: {
@@ -251,7 +279,7 @@ const DriveSync = {
     const token = await DriveSync.signIn(false);
     const folderId = await DriveSync.ensureTeamFolder();
 
-    const query = `'${folderId}' in parents and trashed=false and name contains '.flowcapture'`;
+    const query = `'${DriveSync._escapeQ(folderId)}' in parents and trashed=false and name contains '.flowcapture'`;
     const fields = 'files(id,name,modifiedTime,size,lastModifyingUser,webViewLink)';
     const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=${fields}&orderBy=modifiedTime desc`;
 
@@ -278,8 +306,9 @@ const DriveSync = {
    * Download a .flowcapture file from Drive and return its parsed contents.
    */
   async downloadSOP(fileId) {
+    if (!fileId || typeof fileId !== 'string') throw new Error('Invalid Drive file ID');
     const token = await DriveSync.signIn(false);
-    const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+    const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`;
 
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
@@ -299,9 +328,10 @@ const DriveSync = {
    * Delete a .flowcapture file from Drive (move to trash).
    */
   async deleteSOP(fileId) {
+    if (!fileId || typeof fileId !== 'string') throw new Error('Invalid Drive file ID');
     const token = await DriveSync.signIn(false);
     const response = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${fileId}`,
+      `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}`,
       {
         method: 'PATCH',
         headers: {
@@ -405,9 +435,10 @@ const DriveSync = {
   // ─── Internal Helpers ────────────────────────────────────────────
 
   async _getFile(fileId) {
+    if (!fileId || typeof fileId !== 'string') return null;
     const token = await DriveSync.signIn(false);
     const response = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,trashed`,
+      `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=id,name,trashed`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     if (!response.ok) return null;

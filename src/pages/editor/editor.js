@@ -156,7 +156,16 @@ function createStepCard(step, index) {
   card.dataset.stepId = step.id;
   card.draggable = true;
 
-  const truncatedUrl = step.url ? new URL(step.url).hostname + new URL(step.url).pathname.substring(0, 40) : '';
+  let truncatedUrl = '';
+  if (step.url) {
+    try {
+      const u = new URL(step.url);
+      truncatedUrl = u.hostname + u.pathname.substring(0, 40);
+    } catch (_) {
+      // Malformed URL captured from a content script — display as-is, truncated.
+      truncatedUrl = String(step.url).substring(0, 60);
+    }
+  }
 
   // Role badge HTML
   const roleObj = ROLES.find(r => r.value === (step.role || 'all')) || ROLES[0];
@@ -267,8 +276,9 @@ function createStepCard(step, index) {
   card.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
   card.addEventListener('drop', async (e) => {
     e.preventDefault();
-    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
     const toIndex = index;
+    if (Number.isNaN(fromIndex)) return;
     if (fromIndex !== toIndex) {
       await chrome.runtime.sendMessage({
         type: MSG.REORDER_STEPS,
@@ -431,7 +441,7 @@ function renderNotesHtml(step, stepId) {
 function attachNoteDeleteHandlers(card, step) {
   card.querySelectorAll('.note-delete-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const noteIdx = parseInt(btn.dataset.noteIndex);
+      const noteIdx = parseInt(btn.dataset.noteIndex, 10);
       const stepObj = steps.find(s => s.id === step.id);
       if (stepObj) {
         stepObj.agencyNotes = (stepObj.agencyNotes || []).filter((_, i) => i !== noteIdx);
@@ -982,7 +992,7 @@ function applyRoleFilter() {
       );
 
       if (choice) {
-        const idx = parseInt(choice) - 1;
+        const idx = parseInt(choice, 10) - 1;
         if (idx >= 0 && idx < files.length) {
           await DriveSync.openFromDrive(files[idx].id);
           loadSteps(); // Reload the editor

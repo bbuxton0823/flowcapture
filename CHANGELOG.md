@@ -2,6 +2,46 @@
 
 All notable changes to FlowCapture will be documented in this file. Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver.
 
+## [1.6.2] - 2026-05-13
+
+### Added
+- `README.md` (project purpose, architecture map, install + config).
+- `.env.example` documenting every credential value the Settings page expects.
+- `LICENSE` (MIT).
+- `src/shared/logger.js` — tiny scoped logger so pages stop calling `console.*` directly.
+- Step-count guard: capture rejects new steps past `MAX_STEPS_PER_PROJECT` (500) instead of silently corrupting `chrome.storage.local`.
+- Hard-cap on `.flowcapture` imports (250 MB / 1000 steps) to refuse pathological files before parsing locks the tab.
+- `chrome.runtime.onSuspend` handler closes the IndexedDB connection cleanly.
+- Graceful shutdown on recorder and video pages — stops media streams + AudioContext on tab unload.
+
+### Changed
+- `package.json` — real metadata (name/version/license/keywords); `"test"` now exits 0 instead of 1.
+- Unified ElevenLabs credential storage. `video.js` previously wrote to a separate `flowcapture_elevenlabs` key while the Settings page wrote to `flowcapture_settings.elevenLabs`; both now use the latter, with a one-time migration from the legacy key.
+- Drive sync: token revocation switched from GET-with-token-in-URL to POST (token no longer in browser history / referer headers); Drive file IDs are URL-encoded; the folder-name `q=` query escapes single quotes / backslashes.
+- Drive sync surfaces a clear "client ID not configured" error instead of Chrome's generic OAuth message when the manifest still has the placeholder client ID.
+- `parseInt` calls across recorder, editor, and video now pass an explicit radix.
+
+### Fixed
+- **XSS in popup Drive file picker** — Drive-supplied file names and `modifiedBy.displayName` were interpolated into `innerHTML`. Other Google accounts in a shared folder could inject markup. Replaced with safe `textContent` DOM construction.
+- **YouTube token expiry NaN** — if `expires_in` is missing from the OAuth response, `tokenExpiresAt` was set to `NaN`, immediately invalidating the token. Now coerced to a non-negative number.
+- **Token-exchange validation** — `youtube-uploader` now throws on missing `access_token` in OAuth responses instead of silently storing `undefined`.
+- **Upload validation** — youtube/vimeo `uploadVideo` rejects empty or non-Blob inputs, and restricts privacy values to the allowed set.
+- **Audio-engine fallback** — `_speakElevenLabs` now falls back gracefully when `AudioContext` was not initialised (preview tier) instead of throwing on `decodeAudioData`.
+- **Recorder cue deletion** — `narrationCues.sort()` previously returned the sorted array but the splice ran against the original; indices were off after the first sort. Sort in place so render indices match array indices.
+- **Recorder stream cleanup** — `recordingStream.getVideoTracks()[0].onended = ...` threw when there was no video track. Now guarded.
+- **Editor URL parsing** — `new URL(step.url)` threw for malformed URLs (e.g. captured from `javascript:` schemes), crashing the editor render. Wrapped in try/catch with a safe fallback.
+- **Video page "guidance" alert** — was shown every time the user clicked Download MP4. Now shown once per generation.
+- **Video page resource leak** — canvas and audio stream tracks are now stopped after generation completes.
+- **Background capture** — rejects requests without a valid `sender.tab.id` so we don't try to screenshot the wrong context.
+
+### Security
+- `drive.file` scope review confirmed correct (least-privilege).
+- Removed pattern of building Drive `q=` queries with raw string interpolation.
+
+### Migration notes
+- Users with an ElevenLabs key stored in the legacy `flowcapture_elevenlabs` location will have it migrated on first load of the video page; the legacy key is then removed.
+- No permission changes. No project schema changes.
+
 ## [1.6.1] - 2026-04-20
 
 ### Added

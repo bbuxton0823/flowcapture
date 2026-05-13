@@ -50,8 +50,13 @@
      * @returns {Promise<{videoId, watchUrl, embedUrl, embedIframe}>}
      */
     async uploadVideo(videoBlob, meta, onProgress) {
+      if (!(videoBlob instanceof Blob) || videoBlob.size === 0) {
+        throw new Error('Cannot upload an empty video');
+      }
+      meta = meta || {};
       const token = await this._getToken();
-      const privacy = meta.privacy || 'unlisted';
+      const allowedPrivacy = ['anybody', 'unlisted', 'disable'];
+      const privacy = allowedPrivacy.includes(meta.privacy) ? meta.privacy : 'unlisted';
 
       // Step 1: create video resource + get tus upload link
       const createRes = await fetch(`${API_BASE}/me/videos`, {
