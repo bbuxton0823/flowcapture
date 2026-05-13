@@ -513,9 +513,38 @@ async function exportHTML(steps, project) {
     code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
     a { color: #01696F; }
     @media print { .step { page-break-inside: avoid; } nav { page-break-after: always; } }
+    .fc-toolbar { background: #f0fafa; border-bottom: 2px solid #01696F; padding: 10px 24px; margin: -40px -24px 32px -24px; }
+    .fc-toolbar-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .fc-toolbar-brand { font-weight: 700; font-size: 15px; color: #01696F; display: flex; align-items: center; }
+    .fc-toolbar-actions { display: flex; gap: 8px; }
+    .fc-btn { padding: 7px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; }
+    .fc-btn-primary { background: #01696F; color: #fff; }
+    .fc-btn-primary:hover { background: #0C4E54; }
+    .fc-btn-outline { background: transparent; color: #01696F; border: 1.5px solid #01696F; }
+    .fc-btn-outline:hover { background: #f0fafa; }
+    .fc-toolbar-tip { font-size: 12px; color: #666; margin-top: 6px; }
+    @media print { .fc-toolbar { display: none !important; } }
   </style>
 </head>
 <body>
+  <div class="fc-toolbar" id="fc-toolbar">
+    <div class="fc-toolbar-inner">
+      <span class="fc-toolbar-brand">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:6px"><rect x="2" y="2" width="20" height="20" rx="3"/><circle cx="12" cy="12" r="3"/></svg>
+        FlowCapture SOP
+      </span>
+      <div class="fc-toolbar-actions">
+        <button onclick="window.print()" class="fc-btn fc-btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:5px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print / Save as PDF
+        </button>
+        <button onclick="document.getElementById('fc-toolbar').style.display='none'" class="fc-btn fc-btn-outline">
+          Hide toolbar
+        </button>
+      </div>
+    </div>
+    <p class="fc-toolbar-tip">Tip: In your browser's print dialog, set the destination to "Save as PDF"</p>
+  </div>
   <header>
     <h1>${escapeHtml(project.name || 'SOP')}</h1>
     <p class="meta">Generated ${date} · ${steps.length} step${steps.length !== 1 ? 's' : ''} · FlowCapture</p>

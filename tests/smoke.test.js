@@ -551,6 +551,20 @@ test('HTML EXPORT: exportHTML pluralises step count correctly for a single step'
   assert.match(html, /1 step ·/);
 });
 
+test('HTML EXPORT: exportHTML output includes the print/PDF toolbar', async () => {
+  const { exportHTML } = loadExportHelpers();
+  const html = await exportHTML([{ title: 'Only', imageData: null }], { name: 'X' });
+  assert.match(html, /fc-toolbar/);
+  assert.match(html, /window\.print\(\)/);
+});
+
+test('HTML EXPORT: toolbar is hidden on print via @media print rule', async () => {
+  const { exportHTML } = loadExportHelpers();
+  const html = await exportHTML([{ title: 'Only', imageData: null }], { name: 'X' });
+  assert.match(html, /@media print/);
+  assert.match(html, /\.fc-toolbar\s*\{\s*display:\s*none/);
+});
+
 // ────────────────────────────────────────────────────────────────────
 // 14. WebM → MP4 conversion (audio routing + setInterval, not rAF)
 // ────────────────────────────────────────────────────────────────────
