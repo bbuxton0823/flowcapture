@@ -2,6 +2,20 @@
 
 All notable changes to FlowCapture will be documented in this file. Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver.
 
+## [1.6.4] - 2026-05-13
+
+### Changed
+- Bumped extension, package, popup, and one-click install copy to latest stable `v1.6.4`.
+- `npm test` now runs the smoke suite with `node --test tests/*.test.js` instead of returning a placeholder success.
+
+### Fixed
+- Capture requests now send immediately from the content script so link/button clicks that navigate away do not lose the step before the delayed timer fires.
+- Background project writes are serialized to prevent rapid captures or parallel editor/import actions from overwriting each other in `chrome.storage.local`.
+- Clearing the current SOP now deletes only that project's screenshot records and no longer wipes unrelated projects' screenshots or saved recordings.
+- Role-filtered video generation now renders the selected audience's actual steps instead of mixing filtered indices with the unfiltered step array.
+- Editor step links now sanitize imported URLs to `http:`/`https:` and add `rel="noopener noreferrer"`.
+- Captured form metadata no longer stores typed text-field values by default, reducing accidental PII in exports and Drive sync.
+
 ## [1.6.2] - 2026-05-13
 
 ### Added

@@ -633,9 +633,11 @@
 
       // ── Build slide sequence (with role filter) ──
       const roleFilter = videoRoleFilter?.value || 'all';
-      const filteredSteps = steps.filter(s =>
-        roleFilter === 'all' || (s.role || 'all') === 'all' || (s.role || 'all') === roleFilter
-      );
+      const filteredSteps = steps
+        .map((step, originalIndex) => ({ step, originalIndex }))
+        .filter(({ step }) =>
+          roleFilter === 'all' || (step.role || 'all') === 'all' || (step.role || 'all') === roleFilter
+        );
 
       const slides = [];
       if (includeIntro.checked) {
@@ -648,8 +650,15 @@
           title: projectName + audienceLabel,
         });
       }
-      filteredSteps.forEach((step, i) => {
-        slides.push({ type: 'step', index: i, step, narration: getNarrationText(step, i), title: step.title || `Step ${i + 1}` });
+      filteredSteps.forEach(({ step, originalIndex }, i) => {
+        slides.push({
+          type: 'step',
+          index: originalIndex,
+          displayIndex: i,
+          step,
+          narration: getNarrationText(step, originalIndex),
+          title: step.title || `Step ${i + 1}`,
+        });
       });
       if (includeOutro.checked) {
         slides.push({
@@ -672,7 +681,7 @@
           updateProgress(pct, 'Rendering outro slide...');
           renderOutroSlide();
         } else {
-          updateProgress(pct, `Step ${slide.index + 1}/${steps.length} — generating narration...`);
+          updateProgress(pct, `Step ${slide.displayIndex + 1}/${filteredSteps.length} — generating narration...`);
           // renderFrame is async and resolves only after the image is fully
           // decoded — no fixed sleep needed.
           await renderFrame(slide.index);

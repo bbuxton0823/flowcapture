@@ -110,6 +110,7 @@ Without this section, Drive sync is disabled but the rest of the extension works
 
 ## Versions
 
+- **1.6.4** — Capture reliability hardening, safer project clearing, role-filtered video fix, and active smoke tests
 - **1.6.1** — Auto Video guard modal for missing ElevenLabs key
 - **1.6.0** — One-click Auto Video button
 - **1.5.0** — YouTube/Vimeo publishing, settings page, ElevenLabs integration

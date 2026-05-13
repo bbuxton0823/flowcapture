@@ -1,13 +1,13 @@
 {
   "name": "flowcapture",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "Chrome MV3 extension: capture, annotate, narrate, and publish Standard Operating Procedures.",
   "private": true,
   "directories": {
     "lib": "lib"
   },
   "scripts": {
-    "test": "echo \"No test runner configured — see CHANGELOG for the JSDOM harness used during release.\" && exit 0"
+    "test": "node --test tests/*.test.js"
   },
   "keywords": [
     "chrome-extension",

@@ -58,14 +58,24 @@
 
   function getElementText(el) {
     if (!el) return '';
-    // Never read the typed value of a password field — it would otherwise be
-    // serialized into the step and exported to PDF/HTML/Drive.
-    const isPassword = el.tagName === 'INPUT' && el.type === 'password';
-    const value = isPassword ? '' : (el.value || '');
-    const text = el.innerText || el.textContent || value ||
-      el.getAttribute('aria-label') || el.getAttribute('title') ||
-      (isPassword ? '' : el.getAttribute('placeholder')) ||
-      el.getAttribute('alt') || '';
+    const tag = el.tagName;
+    const type = (el.getAttribute('type') || '').toLowerCase();
+    const safeLabel = el.getAttribute('aria-label') || el.getAttribute('title') ||
+      el.getAttribute('placeholder') || el.getAttribute('name') || el.getAttribute('alt') || '';
+
+    // Do not serialize typed form values into step metadata. Captured projects
+    // are exported to PDF/HTML/Drive, so values like names, case numbers, or
+    // SSNs should not leak just because a user clicked a field.
+    if (tag === 'TEXTAREA' || tag === 'SELECT') {
+      return safeLabel.trim().substring(0, 150);
+    }
+    if (tag === 'INPUT') {
+      const labelTypes = new Set(['button', 'submit', 'reset', 'checkbox', 'radio']);
+      const text = labelTypes.has(type) ? (safeLabel || el.value || '') : safeLabel;
+      return text.trim().substring(0, 150);
+    }
+
+    const text = el.innerText || el.textContent || safeLabel || '';
     return text.trim().substring(0, 150);
   }
 
@@ -224,35 +234,33 @@
 
     showClickHighlight(event.clientX, event.clientY);
 
-    setTimeout(() => {
-      chrome.runtime.sendMessage({
-        type: MSG.CAPTURE_STEP,
-        payload: {
-          url: window.location.href,
-          pageTitle: document.title,
-          elementSelector: getElementSelector(el),
-          elementText: getElementText(el),
-          description: getElementDescription(el),
-          elementRect: {
-            x: rect.x, y: rect.y,
-            width: rect.width, height: rect.height,
-          },
-          clickPosition: { x: event.clientX, y: event.clientY },
-          timestamp: Date.now(),
+    chrome.runtime.sendMessage({
+      type: MSG.CAPTURE_STEP,
+      payload: {
+        url: window.location.href,
+        pageTitle: document.title,
+        elementSelector: getElementSelector(el),
+        elementText: getElementText(el),
+        description: getElementDescription(el),
+        elementRect: {
+          x: rect.x, y: rect.y,
+          width: rect.width, height: rect.height,
         },
-      }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.warn('[FlowCapture] Message error:', chrome.runtime.lastError);
-          showErrorNotification('Capture failed — try reloading the extension');
-          return;
-        }
-        if (response?.success) {
-          showNotification(response.stepNumber);
-        } else {
-          showErrorNotification(response?.error || 'Capture failed');
-        }
-      });
-    }, 100);
+        clickPosition: { x: event.clientX, y: event.clientY },
+        timestamp: Date.now(),
+      },
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.warn('[FlowCapture] Message error:', chrome.runtime.lastError);
+        showErrorNotification('Capture failed — try reloading the extension');
+        return;
+      }
+      if (response?.success) {
+        showNotification(response.stepNumber);
+      } else {
+        showErrorNotification(response?.error || 'Capture failed');
+      }
+    });
   }
 
   // ─── Message Listener ────────────────────────────────────────────

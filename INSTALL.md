@@ -5,7 +5,7 @@ FlowCapture is a Chrome extension — there's no App Store listing. Install take
 ## Step 1 — Get the files
 
 **Option A — Download ZIP (easiest)**
-1. [Click here to download FlowCapture.zip](https://github.com/bbuxton0823/flowcapture/archive/refs/heads/main.zip)
+1. [Click here to download FlowCapture v1.6.4.zip](https://github.com/bbuxton0823/flowcapture/archive/refs/heads/main.zip) — latest stable one-click install
 2. Unzip it anywhere on your computer
 
 **Option B — Clone with Git**

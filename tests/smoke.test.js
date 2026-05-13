@@ -620,7 +620,7 @@ test('CAPTURE FIX: CAPTURE_STEP uses sender.tab.windowId for captureVisibleTab',
   const src = readSrc('src/background/background.js');
   const handlerStart = src.indexOf('case MSG.CAPTURE_STEP');
   assert.ok(handlerStart !== -1, 'CAPTURE_STEP handler must exist');
-  const handlerEnd = src.indexOf('break;', src.indexOf('sendResponse({ success: true, stepId', handlerStart));
+  const handlerEnd = src.indexOf('case MSG.GET_STEPS', handlerStart);
   const handler = src.slice(handlerStart, handlerEnd);
   // Must derive windowId from the sender tab so we capture the right window
   assert.match(handler, /sender\?\.tab\?\.windowId/);
@@ -638,4 +638,66 @@ test('CAPTURE FIX: content.js has showErrorNotification that renders a red toast
   // Persistent banner is shown while capturing
   assert.match(src, /function\s+showCaptureBanner\s*\(/);
   assert.match(src, /function\s+hideCaptureBanner\s*\(/);
+});
+
+// ────────────────────────────────────────────────────────────────────
+// 16. v1.6.4 reliability + safety fixes
+// ────────────────────────────────────────────────────────────────────
+test('1.6.4: CLEAR_STEPS does not wipe recordings or unrelated screenshots', () => {
+  const src = readSrc('src/background/background.js');
+  const handlerStart = src.indexOf('case MSG.CLEAR_STEPS');
+  assert.notEqual(handlerStart, -1);
+  const handlerEnd = src.indexOf('case MSG.CREATE_PROJECT', handlerStart);
+  const handler = src.slice(handlerStart, handlerEnd);
+  assert.match(handler, /screenshotIds\s*=\s*proj\.steps/);
+  assert.match(handler, /deleteScreenshot/);
+  assert.match(handler, /Promise\.allSettled/);
+  assert.doesNotMatch(handler, /clearAllData/);
+  assert.doesNotMatch(handler, /RECORDINGS|recordings/);
+});
+
+test('1.6.4: project writes are serialized through a background queue', () => {
+  const src = readSrc('src/background/background.js');
+  assert.match(src, /let\s+projectWriteQueue\s*=\s*Promise\.resolve\(\)/);
+  assert.match(src, /function\s+enqueueProjectWrite\s*\(/);
+  const captureStart = src.indexOf('case MSG.CAPTURE_STEP');
+  const captureEnd = src.indexOf('case MSG.GET_STEPS', captureStart);
+  const captureHandler = src.slice(captureStart, captureEnd);
+  assert.match(captureHandler, /enqueueProjectWrite/);
+  assert.match(captureHandler, /project\.steps\.push\(step\)/);
+});
+
+test('1.6.4: content capture is sent immediately, not after a navigation-prone timer', () => {
+  const src = readSrc('src/content/content.js');
+  const handlerStart = src.indexOf('function handleClick');
+  const handlerEnd = src.indexOf('// ─── Message Listener', handlerStart);
+  const handler = src.slice(handlerStart, handlerEnd);
+  assert.match(handler, /chrome\.runtime\.sendMessage\(\{/);
+  assert.doesNotMatch(handler, /setTimeout\s*\(\s*\(\)\s*=>\s*\{\s*chrome\.runtime\.sendMessage/);
+});
+
+test('1.6.4: content metadata avoids typed text-field values', () => {
+  const src = readSrc('src/content/content.js');
+  const fnStart = src.indexOf('function getElementText');
+  const fnEnd = src.indexOf('function getElementDescription', fnStart);
+  const fn = src.slice(fnStart, fnEnd);
+  assert.match(fn, /Do not serialize typed form values/);
+  assert.match(fn, /tag\s*===\s*'INPUT'/);
+  assert.match(fn, /labelTypes\.has\(type\)\s*\?\s*\(safeLabel\s*\|\|\s*el\.value/);
+});
+
+test('1.6.4: role-filtered videos keep original step indices', () => {
+  const src = readSrc('src/pages/video/video.js');
+  assert.match(src, /\.map\(\(step,\s*originalIndex\)\s*=>\s*\(\{\s*step,\s*originalIndex\s*\}\)\)/);
+  assert.match(src, /index:\s*originalIndex/);
+  assert.match(src, /displayIndex:\s*i/);
+  assert.match(src, /renderFrame\(slide\.index\)/);
+});
+
+test('1.6.4: editor sanitizes imported step URLs before rendering links', () => {
+  const src = readSrc('src/pages/editor/editor.js');
+  assert.match(src, /function\s+sanitizeUrl\s*\(/);
+  assert.match(src, /parsed\.protocol\s*===\s*'http:'\s*\|\|\s*parsed\.protocol\s*===\s*'https:'/);
+  assert.match(src, /rel="noopener noreferrer"/);
+  assert.match(src, /href="\$\{escapeAttr\(sanitizeUrl\(step\.url\)\)\}"/);
 });

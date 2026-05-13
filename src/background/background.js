@@ -54,6 +54,16 @@ const DB_CONFIG = {
   STORES: { SCREENSHOTS: 'screenshots', RECORDINGS: 'recordings' },
 };
 
+// chrome.storage.local writes are read/modify/write operations. Serializing all
+// project mutations prevents rapid captures or parallel pages from overwriting
+// each other's changes.
+let projectWriteQueue = Promise.resolve();
+function enqueueProjectWrite(task) {
+  const run = projectWriteQueue.catch(() => {}).then(task);
+  projectWriteQueue = run.catch(() => {});
+  return run;
+}
+
 function generateId() {
   return crypto.randomUUID ? crypto.randomUUID() :
     'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -119,19 +129,6 @@ async function deleteScreenshot(id) {
   });
 }
 
-async function clearAllData() {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(
-      [DB_CONFIG.STORES.SCREENSHOTS, DB_CONFIG.STORES.RECORDINGS], 'readwrite'
-    );
-    tx.objectStore(DB_CONFIG.STORES.SCREENSHOTS).clear();
-    tx.objectStore(DB_CONFIG.STORES.RECORDINGS).clear();
-    tx.oncomplete = () => resolve();
-    tx.onerror = (e) => reject(e.target.error);
-  });
-}
-
 // ─── Chrome Storage Helpers ──────────────────────────────────────────
 
 async function getProjects() {
@@ -183,6 +180,25 @@ async function getCaptureState() {
 
 async function setCaptureState(state) {
   await chrome.storage.local.set({ [STORAGE_KEYS.CAPTURE_STATE]: state });
+}
+
+function broadcastCaptureState(state) {
+  chrome.tabs.query({}).then(tabs => {
+    tabs.forEach(tab => {
+      chrome.tabs.sendMessage(tab.id, { type: MSG.SET_CAPTURING, payload: state })
+        .catch(() => {});
+    });
+  }).catch(() => {});
+}
+
+async function syncCaptureCount(stepCount, { stop = false, notifyTabs = false } = {}) {
+  const latestState = await getCaptureState();
+  const isCapturing = stop ? false : !!latestState.isCapturing;
+  const nextState = { isCapturing, stepCount };
+  await setCaptureState(nextState);
+  await updateBadge(isCapturing, stepCount);
+  if (notifyTabs) broadcastCaptureState(nextState);
+  return nextState;
 }
 
 // ─── Badge ───────────────────────────────────────────────────────────
@@ -287,72 +303,68 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
 
         case MSG.CAPTURE_STEP: {
-          const state = await getCaptureState();
-          if (!state.isCapturing) {
-            sendResponse({ success: false, error: 'Not in capture mode' });
-            break;
-          }
+          const result = await enqueueProjectWrite(async () => {
+            const state = await getCaptureState();
+            if (!state.isCapturing) {
+              return { success: false, error: 'Not in capture mode' };
+            }
 
-          const project = await getCurrentProject();
-          if (project.steps.length >= MAX_STEPS_PER_PROJECT) {
-            sendResponse({
-              success: false,
-              error: `Step limit reached (${MAX_STEPS_PER_PROJECT}). Export or split this SOP before capturing more.`,
-            });
-            break;
-          }
+            const project = await getCurrentProject();
+            if (project.steps.length >= MAX_STEPS_PER_PROJECT) {
+              return {
+                success: false,
+                error: `Step limit reached (${MAX_STEPS_PER_PROJECT}). Export or split this SOP before capturing more.`,
+              };
+            }
 
-          // Validate sender — only capture if request came from a real tab
-          // we can capture (skip chrome:// pages, the new-tab page, etc.).
-          const tabId = sender?.tab?.id;
-          if (tabId == null) {
-            sendResponse({ success: false, error: 'Capture request missing tab context' });
-            break;
-          }
+            // Validate sender — only capture if request came from a real tab
+            // we can capture (skip chrome:// pages, the new-tab page, etc.).
+            const tabId = sender?.tab?.id;
+            if (tabId == null) {
+              return { success: false, error: 'Capture request missing tab context' };
+            }
 
-          const windowId = sender?.tab?.windowId;
-          if (windowId == null) {
-            sendResponse({ success: false, error: 'No windowId — cannot capture this tab' });
-            break;
-          }
-          let screenshotDataUrl;
-          try {
-            screenshotDataUrl = await chrome.tabs.captureVisibleTab(windowId, { format: 'png', quality: 92 });
-          } catch (err) {
-            log.warn('captureVisibleTab failed:', err.message);
-            sendResponse({ success: false, error: 'Screenshot failed: ' + err.message });
-            break;
-          }
+            const windowId = sender?.tab?.windowId;
+            if (windowId == null) {
+              return { success: false, error: 'No windowId — cannot capture this tab' };
+            }
 
-          const stepId = generateId();
-          await saveScreenshot(stepId, screenshotDataUrl);
+            let screenshotDataUrl;
+            try {
+              screenshotDataUrl = await chrome.tabs.captureVisibleTab(windowId, { format: 'png', quality: 92 });
+            } catch (err) {
+              log.warn('captureVisibleTab failed:', err.message);
+              return { success: false, error: 'Screenshot failed: ' + err.message };
+            }
 
-          const step = {
-            id: stepId,
-            sequenceNumber: project.steps.length + 1,
-            title: message.payload.description || `Step ${project.steps.length + 1}`,
-            description: '',
-            url: message.payload.url || '',
-            timestamp: Date.now(),
-            elementSelector: message.payload.elementSelector || '',
-            elementText: message.payload.elementText || '',
-            screenshotDataUrl: stepId,
-            annotations: [],
-          };
+            const stepId = generateId();
+            await saveScreenshot(stepId, screenshotDataUrl);
 
-          project.steps.push(step);
-          await updateProject(project);
+            const step = {
+              id: stepId,
+              sequenceNumber: project.steps.length + 1,
+              title: message.payload.description || `Step ${project.steps.length + 1}`,
+              description: '',
+              url: message.payload.url || '',
+              timestamp: Date.now(),
+              elementSelector: message.payload.elementSelector || '',
+              elementText: message.payload.elementText || '',
+              screenshotDataUrl: stepId,
+              annotations: [],
+            };
 
-          const newCount = project.steps.length;
-          // Re-read capture state before re-asserting isCapturing=true. The
-          // user may have toggled capture off during the await chain above;
-          // don't clobber that decision.
-          const latestState = await getCaptureState();
-          const stillCapturing = !!latestState.isCapturing;
-          await setCaptureState({ isCapturing: stillCapturing, stepCount: newCount });
-          await updateBadge(stillCapturing, newCount);
+            project.steps.push(step);
+            await updateProject(project);
 
-          sendResponse({ success: true, stepId: step.id, stepNumber: newCount });
+            const newCount = project.steps.length;
+            // Re-read capture state before re-asserting isCapturing=true. The
+            // user may have toggled capture off during the await chain above;
+            // don't clobber that decision.
+            await syncCaptureCount(newCount);
+
+            return { success: true, stepId: step.id, stepNumber: newCount };
+          });
+          sendResponse(result);
           break;
         }
 
@@ -373,52 +385,75 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
 
         case MSG.UPDATE_STEP: {
-          const proj = await getCurrentProject();
-          const idx = proj.steps.findIndex(s => s.id === message.payload.id);
-          if (idx !== -1) {
-            proj.steps[idx] = { ...proj.steps[idx], ...message.payload.updates };
-            await updateProject(proj);
-            sendResponse({ success: true });
-          } else {
-            sendResponse({ success: false, error: 'Step not found' });
-          }
+          const result = await enqueueProjectWrite(async () => {
+            const proj = await getCurrentProject();
+            const idx = proj.steps.findIndex(s => s.id === message.payload.id);
+            if (idx !== -1) {
+              proj.steps[idx] = { ...proj.steps[idx], ...message.payload.updates };
+              await updateProject(proj);
+              return { success: true };
+            }
+            return { success: false, error: 'Step not found' };
+          });
+          sendResponse(result);
           break;
         }
 
         case MSG.DELETE_STEP: {
-          const proj = await getCurrentProject();
-          const stepIdx = proj.steps.findIndex(s => s.id === message.payload.id);
-          if (stepIdx !== -1) {
-            const removed = proj.steps.splice(stepIdx, 1)[0];
-            proj.steps.forEach((s, i) => { s.sequenceNumber = i + 1; });
-            await updateProject(proj);
-            try { await deleteScreenshot(removed.screenshotDataUrl || removed.id); } catch (_) {}
-            sendResponse({ success: true });
-          } else {
-            sendResponse({ success: false, error: 'Step not found' });
-          }
+          const result = await enqueueProjectWrite(async () => {
+            const proj = await getCurrentProject();
+            const stepIdx = proj.steps.findIndex(s => s.id === message.payload.id);
+            if (stepIdx !== -1) {
+              const removed = proj.steps.splice(stepIdx, 1)[0];
+              proj.steps.forEach((s, i) => { s.sequenceNumber = i + 1; });
+              await updateProject(proj);
+              try { await deleteScreenshot(removed.screenshotDataUrl || removed.id); } catch (_) {}
+              await syncCaptureCount(proj.steps.length);
+              return { success: true };
+            }
+            return { success: false, error: 'Step not found' };
+          });
+          sendResponse(result);
           break;
         }
 
         case MSG.REORDER_STEPS: {
-          const proj = await getCurrentProject();
-          const { fromIndex, toIndex } = message.payload;
-          const [movedStep] = proj.steps.splice(fromIndex, 1);
-          proj.steps.splice(toIndex, 0, movedStep);
-          proj.steps.forEach((s, i) => { s.sequenceNumber = i + 1; });
-          await updateProject(proj);
-          sendResponse({ success: true });
+          const result = await enqueueProjectWrite(async () => {
+            const proj = await getCurrentProject();
+            const { fromIndex, toIndex } = message.payload;
+            if (
+              !Number.isInteger(fromIndex) ||
+              !Number.isInteger(toIndex) ||
+              fromIndex < 0 ||
+              toIndex < 0 ||
+              fromIndex >= proj.steps.length ||
+              toIndex >= proj.steps.length
+            ) {
+              return { success: false, error: 'Invalid reorder indices' };
+            }
+            const [movedStep] = proj.steps.splice(fromIndex, 1);
+            proj.steps.splice(toIndex, 0, movedStep);
+            proj.steps.forEach((s, i) => { s.sequenceNumber = i + 1; });
+            await updateProject(proj);
+            return { success: true };
+          });
+          sendResponse(result);
           break;
         }
 
         case MSG.CLEAR_STEPS: {
-          const proj = await getCurrentProject();
-          proj.steps = [];
-          await updateProject(proj);
-          await clearAllData();
-          await setCaptureState({ isCapturing: false, stepCount: 0 });
-          await updateBadge(false, 0);
-          sendResponse({ success: true });
+          const result = await enqueueProjectWrite(async () => {
+            const proj = await getCurrentProject();
+            const screenshotIds = proj.steps
+              .map(s => s.screenshotDataUrl || s.id)
+              .filter(Boolean);
+            proj.steps = [];
+            await updateProject(proj);
+            await Promise.allSettled(screenshotIds.map(id => deleteScreenshot(id)));
+            await syncCaptureCount(0, { stop: true, notifyTabs: true });
+            return { success: true };
+          });
+          sendResponse(result);
           break;
         }
 
@@ -428,57 +463,69 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // lost-write races when multiple tabs mutate the project list at once.
 
         case MSG.CREATE_PROJECT: {
-          const projects = await getProjects();
-          const incoming = message.payload?.project || {};
-          const newProject = {
-            id: incoming.id || generateId(),
-            name: (incoming.name || 'Untitled SOP').toString().slice(0, 200),
-            description: incoming.description || '',
-            createdAt: incoming.createdAt || Date.now(),
-            updatedAt: Date.now(),
-            steps: Array.isArray(incoming.steps) ? incoming.steps : [],
-            settings: incoming.settings || { includeUrls: true, exportFormat: 'pdf' },
-          };
-          projects.push(newProject);
-          await chrome.storage.local.set({
-            [STORAGE_KEYS.PROJECTS]: projects,
-            [STORAGE_KEYS.CURRENT_PROJECT]: newProject.id,
+          const result = await enqueueProjectWrite(async () => {
+            const projects = await getProjects();
+            const incoming = message.payload?.project || {};
+            const newProject = {
+              id: incoming.id || generateId(),
+              name: (incoming.name || 'Untitled SOP').toString().slice(0, 200),
+              description: incoming.description || '',
+              createdAt: incoming.createdAt || Date.now(),
+              updatedAt: Date.now(),
+              steps: Array.isArray(incoming.steps) ? incoming.steps : [],
+              settings: incoming.settings || { includeUrls: true, exportFormat: 'pdf' },
+            };
+            projects.push(newProject);
+            await chrome.storage.local.set({
+              [STORAGE_KEYS.PROJECTS]: projects,
+              [STORAGE_KEYS.CURRENT_PROJECT]: newProject.id,
+            });
+            await syncCaptureCount(0, { stop: true, notifyTabs: true });
+            return { success: true, project: newProject, id: newProject.id };
           });
-          sendResponse({ success: true, project: newProject, id: newProject.id });
+          sendResponse(result);
           break;
         }
 
         case MSG.UPDATE_PROJECT: {
-          const { id, patch } = message.payload || {};
-          if (!id || !patch || typeof patch !== 'object') {
-            sendResponse({ success: false, error: 'UPDATE_PROJECT requires {id, patch}' });
-            break;
-          }
-          const projects = await getProjects();
-          const idx = projects.findIndex(p => p.id === id);
-          if (idx === -1) {
-            sendResponse({ success: false, error: 'Project not found' });
-            break;
-          }
-          projects[idx] = { ...projects[idx], ...patch, id, updatedAt: Date.now() };
-          await chrome.storage.local.set({ [STORAGE_KEYS.PROJECTS]: projects });
-          sendResponse({ success: true, project: projects[idx] });
+          const result = await enqueueProjectWrite(async () => {
+            const { id, patch } = message.payload || {};
+            if (!id || !patch || typeof patch !== 'object') {
+              return { success: false, error: 'UPDATE_PROJECT requires {id, patch}' };
+            }
+            const projects = await getProjects();
+            const idx = projects.findIndex(p => p.id === id);
+            if (idx === -1) {
+              return { success: false, error: 'Project not found' };
+            }
+            projects[idx] = { ...projects[idx], ...patch, id, updatedAt: Date.now() };
+            await chrome.storage.local.set({ [STORAGE_KEYS.PROJECTS]: projects });
+            if (Array.isArray(patch.steps)) {
+              const current = await getCurrentProject();
+              if (current.id === id) await syncCaptureCount(patch.steps.length);
+            }
+            return { success: true, project: projects[idx] };
+          });
+          sendResponse(result);
           break;
         }
 
         case MSG.IMPORT_PROJECT: {
-          const incoming = message.payload?.project;
-          if (!incoming || !incoming.id) {
-            sendResponse({ success: false, error: 'IMPORT_PROJECT requires {project}' });
-            break;
-          }
-          const projects = await getProjects();
-          projects.push({ ...incoming, updatedAt: Date.now() });
-          await chrome.storage.local.set({
-            [STORAGE_KEYS.PROJECTS]: projects,
-            [STORAGE_KEYS.CURRENT_PROJECT]: incoming.id,
+          const result = await enqueueProjectWrite(async () => {
+            const incoming = message.payload?.project;
+            if (!incoming || !incoming.id) {
+              return { success: false, error: 'IMPORT_PROJECT requires {project}' };
+            }
+            const projects = await getProjects();
+            projects.push({ ...incoming, updatedAt: Date.now() });
+            await chrome.storage.local.set({
+              [STORAGE_KEYS.PROJECTS]: projects,
+              [STORAGE_KEYS.CURRENT_PROJECT]: incoming.id,
+            });
+            await syncCaptureCount(Array.isArray(incoming.steps) ? incoming.steps.length : 0, { stop: true, notifyTabs: true });
+            return { success: true, id: incoming.id };
           });
-          sendResponse({ success: true, id: incoming.id });
+          sendResponse(result);
           break;
         }
 

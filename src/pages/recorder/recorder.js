@@ -99,7 +99,7 @@ function speak(text) {
 
   const utterance = new SpeechSynthesisUtterance(text);
   const voices = speechSynthesis.getVoices();
-  const selectedVoice = voices[parseInt(ttsVoice.value)];
+  const selectedVoice = voices[parseInt(ttsVoice.value, 10)];
   if (selectedVoice) utterance.voice = selectedVoice;
   utterance.rate = parseFloat(ttsRate.value);
   utterance.pitch = 1;

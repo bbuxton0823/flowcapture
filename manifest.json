@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FlowCapture",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "FlowCapture — SOP capture tool for HACSM. Auto-screenshot workflows, annotate with agency notes, one-click Auto Video (screenshots → narrated MP4) with captions, and publish to YouTube or Vimeo with an embed link ready for Yardi Aspire.",
   "icons": {
     "16": "assets/icons/icon-16.png",

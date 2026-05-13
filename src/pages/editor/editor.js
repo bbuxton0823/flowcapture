@@ -257,7 +257,7 @@ function createStepCard(step, index) {
         </div>
 
         <div class="step-meta">
-          ${step.url ? `<a href="${step.url}" target="_blank" title="${step.url}">${truncatedUrl}</a>` : ''}
+          ${step.url ? `<a href="${escapeAttr(sanitizeUrl(step.url))}" target="_blank" rel="noopener noreferrer" title="${escapeAttr(step.url)}">${escapeHtml(truncatedUrl)}</a>` : ''}
           <span>${formatTimestamp(step.timestamp)}</span>
           ${step.elementText ? `<span>Element: "${escapeHtml(step.elementText.substring(0, 50))}"</span>` : ''}
         </div>
@@ -736,6 +736,20 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+function escapeAttr(str) {
+  return escapeHtml(str);
+}
+
+function sanitizeUrl(url) {
+  if (!url) return '#';
+  try {
+    const parsed = new URL(url);
+    return (parsed.protocol === 'http:' || parsed.protocol === 'https:') ? parsed.href : '#';
+  } catch (_) {
+    return '#';
+  }
 }
 
 /**
