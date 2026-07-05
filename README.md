@@ -2,18 +2,18 @@
 
 > Chrome (Manifest V3) extension for capturing, annotating, and publishing Standard Operating Procedures. Built for the Housing Authority of the County of San Mateo (HACSM), usable anywhere.
 
-FlowCapture turns a series of clicks in a browser into a narrated, captioned MP4 video and a polished PDF SOP — with optional Google Drive sync and direct publishing to YouTube or Vimeo for embedding into Yardi Aspire or any other LMS.
+FlowCapture turns a series of clicks in a browser into a narrated, captioned MP4 video and a polished PDF SOP, with optional Google Drive sync and direct publishing to YouTube or Vimeo for embedding into Yardi Aspire or any other LMS.
 
 ## What it does
 
 - **Auto-capture screenshots** every time you click in any tab, with element context, URL, and timestamp.
 - **Editor** for reordering, annotating (highlight, arrow, blur, pixelate, redact, text), adding agency notes (info / warning / critical / tip), tagging by role, and approval workflow (Draft → In Review → Approved).
-- **One-click "Auto Video"** — turns the captured steps into a 1080p MP4 with intro / outro, narration (browser TTS or ElevenLabs AI voice), captions (SRT + VTT), and chapter markers (VTT). Outputs as a ZIP bundle ready for any LMS.
+- **One-click "Auto Video"**, turns the captured steps into a 1080p MP4 with intro / outro, narration (browser TTS or ElevenLabs AI voice), captions (SRT + VTT), and chapter markers (VTT). Outputs as a ZIP bundle ready for any LMS.
 - **PDF export** with cover page, table of contents, role badges, agency notes, and approval stamps.
 - **Screen recorder** with optional microphone, system audio, and scheduled TTS narration cues.
 - **Direct publish** to YouTube (unlisted by default) or Vimeo, with embed URL + iframe ready for paste.
 - **Google Drive team sync** (optional, opt-in).
-- **Local-first storage** — screenshots in IndexedDB, settings in `chrome.storage.local`, no remote backend.
+- **Local-first storage**, screenshots in IndexedDB, settings in `chrome.storage.local`, no remote backend.
 
 ## Architecture at a glance
 
@@ -39,8 +39,8 @@ manifest.json (MV3)
 ```
 
 Storage:
-- **IndexedDB (`FlowCaptureDB`)** — `screenshots` and `recordings` object stores. Holds the heavy binary data.
-- **chrome.storage.local** — project metadata, settings, capture state, Drive config. Never synced.
+- **IndexedDB (`FlowCaptureDB`)**, `screenshots` and `recordings` object stores. Holds the heavy binary data.
+- **chrome.storage.local**, project metadata, settings, capture state, Drive config. Never synced.
 
 Messages between the service worker and pages/content scripts go through `chrome.runtime.sendMessage`. See `src/background/background.js` for the full message vocabulary (`CAPTURE_STEP`, `GET_STEPS`, `UPDATE_STEP`, etc.).
 
@@ -54,28 +54,28 @@ cd flowcapture
 # → "Load unpacked" → select this folder.
 ```
 
-There is no build step — the extension is plain JavaScript, no bundler. `package.json` only declares optional ffmpeg.wasm dependencies; they aren't required for the shipped flow.
+There is no build step, the extension is plain JavaScript, no bundler. `package.json` only declares optional ffmpeg.wasm dependencies; they aren't required for the shipped flow.
 
 ## Configuration
 
-All credentials are **BYO (bring-your-own)** — nothing is baked into the extension. Each user (or each PCO at an agency) provides their own API keys via **Settings**.
+All credentials are **BYO (bring-your-own)**, nothing is baked into the extension. Each user (or each PCO at an agency) provides their own API keys via **Settings**.
 
 See [`.env.example`](.env.example) for the full list of values you need to gather. The extension does not read `.env` directly (Chrome extensions can't); the file is documentation of what to paste into the **Settings** page after install.
 
-### ElevenLabs (optional — for AI narration)
+### ElevenLabs (optional, for AI narration)
 1. Get an API key at https://elevenlabs.io/app/settings/api-keys
 2. Open FlowCapture → Settings → ElevenLabs → paste the key
 3. Click "Load voices" → pick a default voice
 4. Click "Test" to verify
 
-### YouTube (optional — for publishing)
+### YouTube (optional, for publishing)
 1. Create a Google Cloud project, enable **YouTube Data API v3**
 2. Create OAuth 2.0 Client ID (type: Web application)
 3. Add the redirect URI shown in Settings → YouTube → "Your redirect URI"
 4. Paste **Client ID** and **Client Secret** into Settings
 5. Click "Authorize YouTube" → approve in popup
 
-### Vimeo (optional — for publishing)
+### Vimeo (optional, for publishing)
 1. Create an app at https://developer.vimeo.com/apps
 2. Generate a Personal Access Token with scopes: `upload`, `edit`, `delete`, `video_files`, `public`, `private`
 3. Paste into Settings → Vimeo
@@ -99,25 +99,25 @@ Without this section, Drive sync is disabled but the rest of the extension works
 
 - Captured screenshots and recordings **never leave the device** unless the user explicitly publishes (YouTube/Vimeo), exports (PDF/.flowcapture/ZIP), or enables Drive sync.
 - API keys live in `chrome.storage.local`, which is per-machine and never cloud-synced.
-- The Google Drive scope used (`drive.file`) only grants access to files the extension creates — it cannot read the user's other files.
+- The Google Drive scope used (`drive.file`) only grants access to files the extension creates, it cannot read the user's other files.
 - Annotation tools include **blur / pixelate / redact** for removing PII from screenshots before export.
 
 ## Known limitations
 
 - **MP4 in Chrome**: native MP4 recording via `MediaRecorder` is available in Chrome 94+ on most platforms. When unavailable, FlowCapture falls back to WebM with a user-facing message and a re-encode path.
 - **Tab capture**: extension-driven tab capture only works when invoked from a user gesture in the extension's own UI; some Chrome policies disable it entirely.
-- **YouTube quota**: the YouTube Data API has a default daily quota of 10,000 units. Each upload costs ~1,600 units — about six uploads/day per project. Increase the quota in Google Cloud if needed.
+- **YouTube quota**: the YouTube Data API has a default daily quota of 10,000 units. Each upload costs ~1,600 units, about six uploads/day per project. Increase the quota in Google Cloud if needed.
 
 ## Versions
 
-- **1.6.4** — Capture reliability hardening, safer project clearing, role-filtered video fix, and active smoke tests
-- **1.6.1** — Auto Video guard modal for missing ElevenLabs key
-- **1.6.0** — One-click Auto Video button
-- **1.5.0** — YouTube/Vimeo publishing, settings page, ElevenLabs integration
-- **1.0.0** — Initial release: capture, edit, PDF export
+- **1.6.4**, Capture reliability hardening, safer project clearing, role-filtered video fix, and active smoke tests
+- **1.6.1**, Auto Video guard modal for missing ElevenLabs key
+- **1.6.0**, One-click Auto Video button
+- **1.5.0**, YouTube/Vimeo publishing, settings page, ElevenLabs integration
+- **1.0.0**, Initial release: capture, edit, PDF export
 
 See [`CHANGELOG.md`](CHANGELOG.md) for full history.
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+MIT, see [`LICENSE`](LICENSE).
