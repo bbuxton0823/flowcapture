@@ -2,10 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FlowCapture — Settings</title>
   <link rel="stylesheet" href="settings.css">
+  <link rel="stylesheet" href="../../shared/theme.css">
 </head>
-<body>
+<body class="flow-page flow-settings">
   <div id="app">
     <header class="topbar">
       <div class="topbar-left">
@@ -28,8 +30,8 @@
       <div class="banner banner-info">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <div>
-          <strong>Your keys never leave this browser.</strong>
-          API keys are stored in <code>chrome.storage.local</code> on this machine only — never synced to Google account, never sent to FlowCapture servers, never shared with teammates. Each PCO supplies their own keys.
+          <strong>Your keys are stored only in this browser.</strong>
+          API keys live in <code>chrome.storage.local</code> on this machine. They are sent directly to the provider you configure only when you use that integration — never to FlowCapture servers, never synced to your Google account, and never shared with teammates.
         </div>
       </div>
 

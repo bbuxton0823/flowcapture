@@ -105,7 +105,7 @@ function renderPreview() {
   );
 
   const approvalBadge = approvalStatus === 'approved'
-    ? `<span style="display:inline-block;background:#f0fdf4;color:#16a34a;border:1px solid #86efac;padding:2px 10px;border-radius:6px;font-size:12px;font-weight:700;margin-left:8px;">✓ APPROVED</span>`
+    ? `<span style="display:inline-block;background:#ecfdf3;color:#047857;border:1px solid #a6f4c5;padding:2px 10px;border-radius:6px;font-size:12px;font-weight:700;margin-left:8px;">READY TO PUBLISH</span>`
     : approvalStatus === 'in_review'
     ? `<span style="display:inline-block;background:#fffbeb;color:#d97706;border:1px solid #fcd34d;padding:2px 10px;border-radius:6px;font-size:12px;font-weight:700;margin-left:8px;">IN REVIEW</span>`
     : `<span style="display:inline-block;background:#f8fafc;color:#64748b;border:1px solid #e2e8f0;padding:2px 10px;border-radius:6px;font-size:12px;font-weight:700;margin-left:8px;">DRAFT</span>`;
@@ -207,7 +207,7 @@ async function generatePDF() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.text('✓ APPROVED', pageWidth - margin - 32, 12.5);
+    doc.text('READY TO PUBLISH', pageWidth - margin - 32, 12.5);
   } else if (approvalStatus === 'in_review') {
     doc.setFillColor(217, 119, 6);
     doc.roundedRect(pageWidth - margin - 30, 6, 28, 10, 2, 2, 'F');

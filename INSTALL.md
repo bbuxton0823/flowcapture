@@ -34,7 +34,7 @@ Click the FlowCapture icon → walk through the short onboarding wizard. You can
 | AI narration (ElevenLabs) | Free API key from [elevenlabs.io](https://elevenlabs.io/app/settings/api-keys) | Settings → ElevenLabs |
 | Publish to YouTube | YouTube Data API v3 OAuth credentials | Settings → YouTube |
 | Publish to Vimeo | Vimeo Personal Access Token | Settings → Vimeo |
-| Google Drive sync | Enabled automatically via Chrome sign-in | Settings → Drive |
+| Google Drive sync | Chrome Extension OAuth client ID added to `manifest.json` | See **Google Drive sync** in `README.md` |
 
 No integrations are required — everything works locally out of the box.
 

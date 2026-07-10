@@ -77,6 +77,8 @@
     }
 
     const hasSteps = parseInt(stepCountEl.textContent, 10) > 0;
+    document.body.classList.toggle('has-steps', hasSteps);
+    editBtn.classList.toggle('is-recommended', hasSteps && !isCapturing);
     editBtn.disabled = !hasSteps;
     videoBtn.disabled = !hasSteps;
     if (autoVideoBtn) autoVideoBtn.disabled = !hasSteps;
@@ -236,6 +238,7 @@
     syncPanelOpen = !syncPanelOpen;
     teamSyncPanel.style.display = syncPanelOpen ? 'block' : 'none';
     teamSyncToggle.classList.toggle('open', syncPanelOpen);
+    teamSyncToggle.setAttribute('aria-expanded', String(syncPanelOpen));
   });
 
   function showSyncStatus(message, type = 'loading') {
