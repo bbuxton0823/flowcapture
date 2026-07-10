@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "FlowCapture",
   "version": "1.6.4",
-  "description": "FlowCapture — SOP capture tool for HACSM. Auto-screenshot workflows, annotate with agency notes, one-click Auto Video (screenshots → narrated MP4) with captions, and publish to YouTube or Vimeo with an embed link ready for Yardi Aspire.",
+  "description": "Capture browser workflows as editable video and PDF SOPs, with annotations, role filters, optional AI narration, and publishing.",
   "icons": {
     "16": "assets/icons/icon-16.png",
     "48": "assets/icons/icon-48.png",
@@ -53,21 +53,6 @@
       "https://www.googleapis.com/auth/drive.file"
     ]
   },
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "src/pages/editor/editor.html",
-        "src/pages/recorder/recorder.html",
-        "src/pages/export/export.html",
-        "src/pages/video/video.html",
-        "src/pages/onboarding/onboarding.html",
-        "src/pages/settings/settings.html",
-        "lib/*",
-        "assets/*"
-      ],
-      "matches": ["<all_urls>"]
-    }
-  ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   }

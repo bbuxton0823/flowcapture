@@ -161,6 +161,9 @@ const SOPTransfer = {
     if (data.formatVersion !== SOPTransfer.FORMAT_VERSION) {
       warnings.push(`File was created with format v${data.formatVersion}, current is v${SOPTransfer.FORMAT_VERSION}. Some features may differ.`);
     }
+    if (data.project?.approvalStatus && data.project.approvalStatus !== 'draft') {
+      warnings.push('Workflow status was reset to Draft because imported files do not carry local approval provenance.');
+    }
 
     // Generate new IDs to avoid collisions with existing projects
     const newProjectId = crypto.randomUUID();
@@ -208,7 +211,9 @@ const SOPTransfer = {
         return step;
       }),
       settings: data.project?.settings || { includeUrls: true, exportFormat: 'pdf' },
-      approvalStatus: data.project?.approvalStatus || 'draft',
+      // Imported files have no local approver or provenance. Always reopen
+      // collaboration artifacts as drafts instead of trusting a visual stamp.
+      approvalStatus: 'draft',
     };
 
     // ── Store via background (single-writer) ──

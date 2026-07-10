@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FlowCapture - Generate Video</title>
   <link rel="stylesheet" href="video.css">
+  <link rel="stylesheet" href="../../shared/theme.css">
 </head>
-<body>
+<body class="flow-page flow-video">
   <div id="app">
     <header class="topbar">
       <div class="topbar-left">
@@ -63,7 +64,7 @@
               <polyline points="7 10 12 15 17 10"/>
               <line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
-            Download MP4
+            <span id="downloadBtnLabel">Download video</span>
           </button>
           <button id="downloadZipBtn" class="btn btn-bundle" disabled title="Download video + captions (SRT/VTT) + chapter markers in one ZIP">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -158,7 +159,7 @@
         <!-- Audio Tier Selection -->
         <div class="settings-card">
           <h3>Narration Audio</h3>
-          <p class="hint" style="margin-bottom:8px">Choose how narration is generated from each step's text. Audio is auto-created from the narration text shown below.</p>
+          <p class="hint" style="margin-bottom:8px">Choose how narration is handled. ElevenLabs embeds audio; browser voice is a speaker-only timing preview.</p>
           <div class="tier-selector">
             <label class="tier-option">
               <input type="radio" name="audioTier" value="preview" checked>
@@ -170,8 +171,8 @@
             <label class="tier-option">
               <input type="radio" name="audioTier" value="builtin">
               <div class="tier-card">
-                <strong>Browser Voice (Limited)</strong>
-                <span>Attempts to capture browser text-to-speech into the video. <b>Note:</b> Due to browser limitations, audio may be faint or silent on some systems. Best for testing narration timing before using ElevenLabs.</span>
+                <strong>Browser Voice Preview</strong>
+                <span>Reads narration through your speakers while generating. Browser speech cannot be embedded reliably, so the exported file may be silent. Use this for timing checks, not final delivery.</span>
               </div>
             </label>
             <label class="tier-option">
@@ -264,8 +265,8 @@
             <div class="bundle-item">
               <span class="bundle-icon">🎬</span>
               <div>
-                <strong>video.mp4</strong>
-                <span>1080p H.264, narrated, ready for Vimeo/YouTube/Yardi</span>
+                <strong>video.mp4 or video.webm</strong>
+                <span>1080p video in the best format supported by your browser; narration is embedded with ElevenLabs</span>
               </div>
             </div>
             <div class="bundle-item">
@@ -279,7 +280,7 @@
               <span class="bundle-icon">💬</span>
               <div>
                 <strong>captions.vtt</strong>
-                <span>WebVTT captions — for HTML5 video and web-based LMS (ADA compliant)</span>
+                <span>WebVTT captions — supports accessible playback in HTML5 video and web-based LMS platforms</span>
               </div>
             </div>
             <div class="bundle-item">
@@ -315,8 +316,8 @@
       <div class="av-modal-card">
         <h2 id="avModalTitle" class="av-modal-title">No ElevenLabs voice configured</h2>
         <p id="avModalBody" class="av-modal-body">
-          Auto Video works best with an ElevenLabs API key for natural narration.
-          You can configure ElevenLabs now, proceed with the built-in browser voice,
+          FlowCapture cannot reliably embed browser text-to-speech in an exported video.
+          Configure ElevenLabs for a narrated final, create a silent draft with captions,
           or cancel and configure later.
         </p>
         <label class="av-modal-checkbox">
@@ -325,7 +326,7 @@
         </label>
         <div class="av-modal-actions">
           <button type="button" id="avCancelBtn" class="btn btn-outline">Cancel</button>
-          <button type="button" id="avProceedBtn" class="btn btn-secondary">Proceed with browser voice</button>
+          <button type="button" id="avProceedBtn" class="btn btn-secondary">Create silent draft</button>
           <button type="button" id="avConfigureBtn" class="btn btn-primary">Configure ElevenLabs</button>
         </div>
       </div>

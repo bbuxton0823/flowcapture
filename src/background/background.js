@@ -329,6 +329,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               return { success: false, error: 'No windowId — cannot capture this tab' };
             }
 
+            // captureVisibleTab captures whichever tab is active at call time,
+            // not necessarily the tab that sent the click. Abort if focus moved
+            // while this queued write was waiting so unrelated content cannot
+            // be added to the SOP by accident.
+            const [activeTab] = await chrome.tabs.query({ active: true, windowId });
+            if (!activeTab || activeTab.id !== tabId) {
+              return {
+                success: false,
+                error: 'The active tab changed before the screenshot was taken. Click the step again.',
+              };
+            }
+
             let screenshotDataUrl;
             try {
               screenshotDataUrl = await chrome.tabs.captureVisibleTab(windowId, { format: 'png', quality: 92 });

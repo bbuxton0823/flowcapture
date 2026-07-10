@@ -85,7 +85,7 @@ const NOTE_TYPES = [
 const APPROVAL_STATES = [
   { value: 'draft',     label: 'Draft',      color: '#94a3b8', bg: '#f8fafc' },
   { value: 'in_review', label: 'In Review',  color: '#f59e0b', bg: '#fffbeb' },
-  { value: 'approved',  label: '✓ Approved', color: '#16a34a', bg: '#f0fdf4' },
+  { value: 'approved',  label: 'Ready to publish', color: '#047857', bg: '#ecfdf3' },
 ];
 
 // ─── Project Metadata Helpers ────────────────────────────────────────
@@ -235,7 +235,7 @@ function createStepCard(step, index) {
         <div class="step-role-row">
           <label class="step-field-label">Applies to:</label>
           <div class="role-selector" data-step-id="${step.id}">
-            ${ROLES.map(r => `<button class="role-pill ${(step.role||'all') === r.value ? 'active' : ''}" data-role="${r.value}" data-step-id="${step.id}" style="${(step.role||'all') === r.value ? `background:${r.color};color:#fff;border-color:${r.color}` : ''}">${r.label}</button>`).join('')}
+            ${ROLES.map(r => `<button class="role-pill ${(step.role||'all') === r.value ? 'active' : ''}" data-role="${r.value}" data-step-id="${step.id}" aria-pressed="${(step.role||'all') === r.value}" style="${(step.role||'all') === r.value ? `background:${r.color};color:#fff;border-color:${r.color}` : ''}">${r.label}</button>`).join('')}
           </div>
         </div>
 
@@ -357,11 +357,13 @@ function setupCardEvents(card, step, index) {
       // Update visual
       card.querySelectorAll('.role-pill').forEach(p => {
         p.classList.remove('active');
+        p.setAttribute('aria-pressed', 'false');
         p.style.background = '';
         p.style.color = '';
         p.style.borderColor = '';
       });
       pill.classList.add('active');
+      pill.setAttribute('aria-pressed', 'true');
       pill.style.background = roleObj.color;
       pill.style.color = '#fff';
       pill.style.borderColor = roleObj.color;
@@ -462,12 +464,23 @@ function attachNoteDeleteHandlers(card, step) {
 // ─── Annotation System ───────────────────────────────────────────────
 
 let baseImage = null;
+let annotationReturnFocus = null;
+
+function closeAnnotationModal() {
+  annotationModal.style.display = 'none';
+  if (annotationReturnFocus && typeof annotationReturnFocus.focus === 'function') {
+    annotationReturnFocus.focus();
+  }
+  annotationReturnFocus = null;
+}
 
 function openAnnotation(step) {
   if (!step.imageData) return;
+  annotationReturnFocus = document.activeElement;
   currentAnnotationStep = step;
   annotationHistory = [];
   annotationModal.style.display = '';
+  setTimeout(() => document.getElementById('closeAnnotation')?.focus(), 0);
 
   const img = new Image();
   img.onload = () => {
@@ -483,8 +496,12 @@ function openAnnotation(step) {
 // Tool selection
 document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tool-btn[data-tool]').forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-pressed', 'false');
+    });
     btn.classList.add('active');
+    btn.setAttribute('aria-pressed', 'true');
     annotationTool = btn.dataset.tool;
   });
 });
@@ -644,13 +661,19 @@ document.getElementById('saveAnnotation').addEventListener('click', async () => 
   const step = steps.find(s => s.id === currentAnnotationStep.id);
   if (step) step.imageData = annotatedDataUrl;
 
-  annotationModal.style.display = 'none';
+  closeAnnotationModal();
   renderSteps();
 });
 
 // Close modal
-document.getElementById('closeAnnotation').addEventListener('click', () => {
-  annotationModal.style.display = 'none';
+document.getElementById('closeAnnotation').addEventListener('click', closeAnnotationModal);
+annotationModal.addEventListener('click', (event) => {
+  if (event.target === annotationModal) closeAnnotationModal();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && annotationModal.style.display !== 'none') {
+    closeAnnotationModal();
+  }
 });
 
 // ─── Top Bar Actions ─────────────────────────────────────────────────
@@ -873,12 +896,13 @@ function updateApprovalBarUI() {
   const APPROVAL_COLORS = {
     draft:     { color: '#64748b', bg: '#f8fafc' },
     in_review: { color: '#d97706', bg: '#fffbeb' },
-    approved:  { color: '#16a34a', bg: '#f0fdf4' },
+    approved:  { color: '#047857', bg: '#ecfdf3' },
   };
 
   document.querySelectorAll('.approval-pill').forEach(pill => {
     const isActive = pill.dataset.status === currentApprovalStatus;
     pill.classList.toggle('active', isActive);
+    pill.setAttribute('aria-pressed', String(isActive));
     const c = APPROVAL_COLORS[pill.dataset.status] || APPROVAL_COLORS.draft;
     pill.style.background = isActive ? c.color : '';
     pill.style.color = isActive ? '#fff' : '';
@@ -892,7 +916,7 @@ function updateApprovalBarUI() {
     const stamp = document.createElement('span');
     stamp.id = 'approvedStamp';
     stamp.className = 'approved-stamp';
-    stamp.textContent = '✓ Approved';
+    stamp.textContent = 'Ready to publish';
     document.querySelector('.topbar-left')?.appendChild(stamp);
   }
 }
@@ -911,7 +935,9 @@ document.querySelectorAll('.role-filter-pill').forEach(pill => {
   pill.addEventListener('click', () => {
     currentRoleFilter = pill.dataset.role;
     document.querySelectorAll('.role-filter-pill').forEach(p => {
-      p.classList.toggle('active', p.dataset.role === currentRoleFilter);
+      const isActive = p.dataset.role === currentRoleFilter;
+      p.classList.toggle('active', isActive);
+      p.setAttribute('aria-pressed', String(isActive));
     });
     applyRoleFilter();
   });

@@ -771,8 +771,10 @@
 
       const sizeMB = (videoBlob.size / 1024 / 1024).toFixed(1);
       const tierLabel = tier === 'elevenlabs' ? 'ElevenLabs audio'
-        : tier === 'builtin' ? 'built-in audio' : 'preview mode';
+        : 'silent draft with speaker preview';
       const formatLabel = (videoBlob._format === 'mp4') ? 'MP4 ✓' : 'WebM';
+      const downloadBtnLabel = document.getElementById('downloadBtnLabel');
+      if (downloadBtnLabel) downloadBtnLabel.textContent = `Download ${formatLabel.replace(' ✓', '')}`;
 
       updateProgress(100, `✓ Video ready — ${sizeMB} MB · ${formatLabel} · ${captionSegments.length} captions · ${chapterEntries.length} chapters · ${tierLabel}`);
 
@@ -983,7 +985,7 @@
   // workflow: screenshots → narrated video with no extra configuration.
   //
   // v1.6.1: When no ElevenLabs key is configured, show a guard modal
-  // asking the user whether to Configure / Proceed with browser voice /
+  // asking the user whether to Configure / Create a silent draft /
   // Cancel — instead of silently falling back. A "Don't ask again" flag
   // suppresses the prompt on Proceed/Configure.
   async function maybeAutoStart() {
@@ -1013,7 +1015,7 @@
 
       // Prefer ElevenLabs if a key is saved. If not, run the v1.6.1 guard
       // unless the user has previously asked us not to.
-      let chose = 'builtin';
+      let chose = 'preview';
       let elevenSettings = null;
       try {
         if (window.FlowCaptureSettings) {
@@ -1043,16 +1045,18 @@
             updateProgress(0, 'Opened Settings. Add your ElevenLabs key, then click Auto Video again.');
             return;
           }
-          // decision === 'proceed' → fall through with browser voice
+          // decision === 'proceed' → fall through with a captioned silent draft
         }
-        chose = 'builtin';
+        chose = 'preview';
       }
 
       const radios = document.querySelectorAll('input[name="audioTier"]');
       radios.forEach(r => { r.checked = (r.value === chose); });
       if (typeof updateTierUI === 'function') updateTierUI();
 
-      updateProgress(2, 'Auto Video: starting generation…');
+      updateProgress(2, chose === 'elevenlabs'
+        ? 'Auto Video: starting narrated generation…'
+        : 'Auto Draft: creating a silent video with captions…');
       // Tiny delay so any tier UI reactions settle before we kick off.
       await sleep(120);
       generateVideo();
@@ -1062,7 +1066,7 @@
   }
 
   // ─── v1.6.1 helpers: silent-ack flag + guard modal ───────────────
-  const SILENT_ACK_KEY = 'flowcapture_av_silent_ack';
+  const SILENT_ACK_KEY = 'flowcapture_av_silent_draft_ack_v2';
 
   async function getSilentAckFlag() {
     try {

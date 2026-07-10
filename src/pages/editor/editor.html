@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FlowCapture - Edit SOP</title>
   <link rel="stylesheet" href="editor.css">
+  <link rel="stylesheet" href="../../shared/theme.css">
 </head>
-<body>
+<body class="flow-page flow-editor">
   <div id="app">
     <!-- Top Bar -->
     <header class="topbar">
@@ -69,20 +70,20 @@
     <!-- Approval Status Bar -->
     <div class="approval-bar" id="approvalBar">
       <div class="approval-bar-left">
-        <span class="approval-label">Status:</span>
+        <span class="approval-label">Workflow status:</span>
         <div class="approval-pills">
-          <button class="approval-pill active" data-status="draft">Draft</button>
-          <button class="approval-pill" data-status="in_review">In Review</button>
-          <button class="approval-pill" data-status="approved">✓ Approved</button>
+          <button class="approval-pill active" data-status="draft" aria-pressed="true">Draft</button>
+          <button class="approval-pill" data-status="in_review" aria-pressed="false">In Review</button>
+          <button class="approval-pill" data-status="approved" aria-pressed="false">Ready to publish</button>
         </div>
       </div>
       <div class="approval-bar-right">
         <span class="approval-label">Filter by role:</span>
         <div class="role-filter-pills">
-          <button class="role-filter-pill active" data-role="all">All Staff</button>
-          <button class="role-filter-pill" data-role="manager">Housing Manager</button>
-          <button class="role-filter-pill" data-role="frontdesk">Front Desk</button>
-          <button class="role-filter-pill" data-role="finance">Finance</button>
+          <button class="role-filter-pill active" data-role="all" aria-pressed="true">All Staff</button>
+          <button class="role-filter-pill" data-role="manager" aria-pressed="false">Housing Manager</button>
+          <button class="role-filter-pill" data-role="frontdesk" aria-pressed="false">Front Desk</button>
+          <button class="role-filter-pill" data-role="finance" aria-pressed="false">Finance</button>
         </div>
       </div>
     </div>
@@ -94,37 +95,43 @@
           <rect x="2" y="2" width="20" height="20" rx="3"/>
           <circle cx="12" cy="12" r="3"/>
         </svg>
-        <h3>No steps captured yet</h3>
-        <p>Start capturing by clicking the FlowCapture icon and pressing "Start Capturing"</p>
+        <span class="empty-kicker">Capture workspace</span>
+        <h3>Turn a live workflow into a polished SOP</h3>
+        <p>Open FlowCapture from your browser toolbar, start capturing, then click through the process you want to document.</p>
+        <div class="empty-steps" aria-label="How to begin">
+          <span><b>1</b> Start capture</span>
+          <span><b>2</b> Complete the workflow</span>
+          <span><b>3</b> Return here to refine</span>
+        </div>
       </div>
     </div>
 
     <!-- Annotation Modal -->
-    <div class="modal-overlay" id="annotationModal" style="display:none">
-      <div class="modal">
+    <div class="modal-overlay" id="annotationModal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="annotationTitle">
+      <div class="modal" tabindex="-1">
         <div class="modal-header">
-          <h3>Annotate Screenshot</h3>
-          <button class="modal-close" id="closeAnnotation">&times;</button>
+          <h3 id="annotationTitle">Annotate Screenshot</h3>
+          <button class="modal-close" id="closeAnnotation" aria-label="Close annotation editor">&times;</button>
         </div>
         <div class="annotation-toolbar">
-          <button class="tool-btn active" data-tool="highlight" title="Highlight">
+          <button class="tool-btn active" data-tool="highlight" title="Highlight" aria-pressed="true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
           </button>
-          <button class="tool-btn" data-tool="arrow" title="Arrow">
+          <button class="tool-btn" data-tool="arrow" title="Arrow" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </button>
-          <button class="tool-btn" data-tool="text" title="Text">
+          <button class="tool-btn" data-tool="text" title="Text" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9.5" y1="20" x2="14.5" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
           </button>
           <div class="tool-separator"></div>
           <span style="font-size:11px;color:#94a3b8;padding:0 4px;">PII Tools:</span>
-          <button class="tool-btn" data-tool="blur" title="Gaussian Blur (PII)">
+          <button class="tool-btn" data-tool="blur" title="Gaussian Blur (PII)" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" opacity="0.4"/><circle cx="12" cy="12" r="6" opacity="0.6"/><circle cx="12" cy="12" r="2"/></svg>
           </button>
-          <button class="tool-btn" data-tool="pixelate" title="Pixelate (PII)">
+          <button class="tool-btn" data-tool="pixelate" title="Pixelate (PII)" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
           </button>
-          <button class="tool-btn" data-tool="redact" title="Black Redact (PII)">
+          <button class="tool-btn" data-tool="redact" title="Black Redact (PII)" aria-pressed="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="8" width="20" height="8" fill="currentColor" rx="1"/></svg>
           </button>
           <div class="tool-separator"></div>

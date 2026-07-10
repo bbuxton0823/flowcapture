@@ -628,6 +628,47 @@ test('CAPTURE FIX: CAPTURE_STEP uses sender.tab.windowId for captureVisibleTab',
   assert.match(handler, /chrome\.tabs\.captureVisibleTab\(\s*windowId\s*,/);
 });
 
+test('CAPTURE SAFETY: CAPTURE_STEP verifies the sender is still the active tab', () => {
+  const src = readSrc('src/background/background.js');
+  const handlerStart = src.indexOf('case MSG.CAPTURE_STEP');
+  const handlerEnd = src.indexOf('case MSG.GET_STEPS', handlerStart);
+  const handler = src.slice(handlerStart, handlerEnd);
+  assert.match(handler, /chrome\.tabs\.query\(\{\s*active:\s*true,\s*windowId\s*\}\)/);
+  assert.match(handler, /activeTab\.id\s*!==\s*tabId/);
+  assert.ok(
+    handler.indexOf('activeTab.id !== tabId') < handler.indexOf('screenshotDataUrl = await chrome.tabs.captureVisibleTab'),
+    'active-tab identity must be checked before taking a screenshot'
+  );
+});
+
+test('IMPORT SAFETY: imported projects always reopen as drafts', () => {
+  const src = readSrc('src/shared/sop-transfer.js');
+  const projectStart = src.indexOf('const importedProject =');
+  const projectEnd = src.indexOf('// ── Store via background', projectStart);
+  const importedProject = src.slice(projectStart, projectEnd);
+  assert.match(importedProject, /approvalStatus:\s*'draft'/);
+  assert.doesNotMatch(importedProject, /data\.project\?\.approvalStatus/);
+});
+
+test('AUTO DRAFT: missing ElevenLabs selects honest preview mode', () => {
+  const src = readSrc('src/pages/video/video.js');
+  const autoStart = src.indexOf('async function maybeAutoStart');
+  const helperStart = src.indexOf('// ─── v1.6.1 helpers', autoStart);
+  const autoHandler = src.slice(autoStart, helperStart);
+  assert.match(autoHandler, /let\s+chose\s*=\s*'preview'/);
+  assert.match(autoHandler, /chose\s*=\s*'preview'/);
+  assert.doesNotMatch(autoHandler, /chose\s*=\s*'builtin'/);
+});
+
+test('MANIFEST SAFETY: internal extension pages are not web-accessible', () => {
+  const manifest = JSON.parse(readSrc('manifest.json'));
+  assert.equal(
+    manifest.web_accessible_resources,
+    undefined,
+    'internal pages and bundled libraries should only be reachable from extension contexts'
+  );
+});
+
 test('CAPTURE FIX: content.js has showErrorNotification that renders a red toast', () => {
   const src = readSrc('src/content/content.js');
   assert.match(src, /function\s+showErrorNotification\s*\(/);

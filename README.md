@@ -2,14 +2,14 @@
 
 > Chrome (Manifest V3) extension for capturing, annotating, and publishing Standard Operating Procedures. Built for the Housing Authority of the County of San Mateo (HACSM), usable anywhere.
 
-FlowCapture turns a series of clicks in a browser into a narrated, captioned MP4 video and a polished PDF SOP, with optional Google Drive sync and direct publishing to YouTube or Vimeo for embedding into Yardi Aspire or any other LMS.
+FlowCapture turns a series of clicks in a browser into a captioned video and a polished PDF SOP. Final videos can include ElevenLabs narration, with optional Google Drive sync and direct publishing to YouTube or Vimeo for embedding into Yardi Aspire or another LMS.
 
 ## What it does
 
 - **Auto-capture screenshots** every time you click in any tab, with element context, URL, and timestamp.
-- **Editor** for reordering, annotating (highlight, arrow, blur, pixelate, redact, text), adding agency notes (info / warning / critical / tip), tagging by role, and approval workflow (Draft → In Review → Approved).
-- **One-click "Auto Video"**, turns the captured steps into a 1080p MP4 with intro / outro, narration (browser TTS or ElevenLabs AI voice), captions (SRT + VTT), and chapter markers (VTT). Outputs as a ZIP bundle ready for any LMS.
-- **PDF export** with cover page, table of contents, role badges, agency notes, and approval stamps.
+- **Editor** for reordering, annotating (highlight, arrow, blur, pixelate, redact, text), adding agency notes (info / warning / critical / tip), tagging by role, and local workflow status (Draft → In Review → Ready to publish).
+- **One-click "Auto Draft"**, turns captured steps into a captioned 1080p video with intro / outro and chapter markers. Add ElevenLabs for embedded narration; browser voice is a speaker preview and is not reliable in the exported file.
+- **PDF export** with cover page, table of contents, role badges, agency notes, and workflow status.
 - **Screen recorder** with optional microphone, system audio, and scheduled TTS narration cues.
 - **Direct publish** to YouTube (unlisted by default) or Vimeo, with embed URL + iframe ready for paste.
 - **Google Drive team sync** (optional, opt-in).
@@ -25,7 +25,7 @@ manifest.json (MV3)
 ├─ pages/
 │  ├─ editor/                     Step review, drag-reorder, annotation, role/notes
 │  ├─ recorder/                   Screen recording (MediaRecorder + WebRTC)
-│  ├─ video/                      Canvas → MP4 generator · audio-engine.js · mp4-converter.js
+│  ├─ video/                      Canvas video generator · audio-engine.js · mp4-converter.js
 │  ├─ export/                     jsPDF-based PDF generator
 │  ├─ settings/                   API key management (ElevenLabs, YouTube, Vimeo)
 │  └─ onboarding/                 First-run wizard
@@ -104,7 +104,7 @@ Without this section, Drive sync is disabled but the rest of the extension works
 
 ## Known limitations
 
-- **MP4 in Chrome**: native MP4 recording via `MediaRecorder` is available in Chrome 94+ on most platforms. When unavailable, FlowCapture falls back to WebM with a user-facing message and a re-encode path.
+- **MP4 in Chrome**: native MP4 recording via `MediaRecorder` is available on supported Chrome/platform combinations. When unavailable, FlowCapture honestly falls back to WebM and shows conversion guidance.
 - **Tab capture**: extension-driven tab capture only works when invoked from a user gesture in the extension's own UI; some Chrome policies disable it entirely.
 - **YouTube quota**: the YouTube Data API has a default daily quota of 10,000 units. Each upload costs ~1,600 units, about six uploads/day per project. Increase the quota in Google Cloud if needed.
 

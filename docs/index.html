@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>FlowCapture: Record any browser workflow as a narrated video SOP</title>
-<meta name="description" content="FlowCapture is a Chrome extension that records browser workflows as narrated video SOPs and polished PDFs in one click, no screen recorder needed." />
+<title>FlowCapture: Turn browser workflows into video SOPs and polished PDFs</title>
+<meta name="description" content="FlowCapture is a Chrome extension that turns browser workflows into captioned video SOPs and polished PDFs, with optional ElevenLabs narration." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -16,9 +16,9 @@
     --border: #30363d;
     --text: #e6edf3;
     --text-dim: #8b949e;
-    --teal: #01696F;
-    --teal-bright: #02949c;
-    --teal-glow: rgba(1, 105, 111, 0.35);
+    --teal: #635bff;
+    --teal-bright: #8c7dff;
+    --teal-glow: rgba(99, 91, 255, 0.32);
     --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -69,7 +69,7 @@
     padding: 96px 0 80px;
     text-align: center;
     background:
-      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(1,105,111,0.20), transparent 60%),
+      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(99,91,255,0.20), transparent 60%),
       var(--bg);
   }
   .hero-logo {
@@ -342,8 +342,9 @@
 <nav class="nav">
   <div class="nav-inner">
     <div class="nav-brand">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#01696F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2" fill="#01696F"/>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#635bff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="3.2"/>
+        <path d="M12 2v5M12 17v5M2 12h5M17 12h5"/>
       </svg>
       FlowCapture
     </div>
@@ -359,14 +360,14 @@
 <header class="hero">
   <div class="container">
     <div class="hero-logo">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#01696F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="10"/>
-        <circle cx="12" cy="12" r="4" fill="#01696F"/>
-        <path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#635bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="2" y="2" width="20" height="20" rx="5"/>
+        <circle cx="12" cy="12" r="3.2"/>
+        <path d="M12 2v5M12 17v5M2 12h5M17 12h5"/>
       </svg>
     </div>
     <h1>FlowCapture</h1>
-    <p class="subhead">Record any browser workflow as a narrated video SOP in one click, no screen recorder needed.</p>
+    <p class="subhead">Turn any browser workflow into a clear, captioned video SOP and polished PDF—without recording your screen in real time.</p>
     <a class="cta" href="#install">⬇ Download v1.6.4 &amp; Install</a>
     <p class="hero-meta">Latest stable v1.6.4 <span>·</span> Free <span>·</span> Open source <span>·</span> Chrome extension <span>·</span> No account required</p>
   </div>
@@ -375,7 +376,7 @@
 <section id="features">
   <div class="container">
     <h2 class="section-title">What it does</h2>
-    <p class="section-sub">Capture, narrate, and publish standard operating procedures without leaving the browser.</p>
+    <p class="section-sub">Capture, refine, and publish standard operating procedures without leaving the browser.</p>
     <div class="features">
       <div class="feature">
         <span class="feature-icon">📸</span>
@@ -385,7 +386,7 @@
       <div class="feature">
         <span class="feature-icon">🎬</span>
         <h3>One-click video</h3>
-        <p>Turns captured steps into a 1080p MP4 with intro/outro, AI narration (ElevenLabs or browser TTS), and caption tracks.</p>
+        <p>Turns captured steps into a 1080p video with intro/outro, caption tracks, and optional embedded ElevenLabs narration.</p>
       </div>
       <div class="feature">
         <span class="feature-icon">📄</span>
@@ -395,7 +396,7 @@
       <div class="feature">
         <span class="feature-icon">🎙️</span>
         <h3>AI Narration</h3>
-        <p>Optional ElevenLabs integration for professional voice-over. Or use built-in browser TTS, no API key needed to get started.</p>
+        <p>Optional ElevenLabs integration embeds professional voice-over. Browser voice remains available as a speaker preview for timing checks.</p>
       </div>
       <div class="feature">
         <span class="feature-icon">☁️</span>
@@ -405,7 +406,7 @@
       <div class="feature">
         <span class="feature-icon">🔒</span>
         <h3>Local-first</h3>
-        <p>All screenshots and recordings stay in your browser. No backend, no cloud, no account required.</p>
+        <p>By default, screenshots and recordings stay in your browser. Data leaves only when you explicitly export, sync, or publish.</p>
       </div>
     </div>
   </div>
@@ -448,7 +449,7 @@
             <li>Open FlowCapture → <strong>Settings</strong> → <strong>ElevenLabs</strong></li>
             <li>Paste your key and click <strong>Load Voices</strong></li>
           </ol>
-          <p style="margin-top: 12px;">Skip this step to use the built-in browser TTS, no API key needed.</p>
+          <p style="margin-top: 12px;">Skip this step to create a silent draft with captions and use browser voice as a speaker preview.</p>
         </div>
       </details>
     </div>
@@ -458,7 +459,7 @@
 <section id="quickstart">
   <div class="container">
     <h2 class="section-title">Quick start</h2>
-    <p class="section-sub">From install to published video in three clicks.</p>
+    <p class="section-sub">From install to a review-ready draft in three steps.</p>
     <div class="quickstart">
       <div class="quick-card">
         <span class="quick-num">1</span>

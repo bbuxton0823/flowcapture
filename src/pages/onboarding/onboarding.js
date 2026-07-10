@@ -18,9 +18,12 @@
 
   // ─── Build step dots ──────────────────────────────────────
   for (let i = 0; i < TOTAL_STEPS; i++) {
-    const dot = document.createElement('div');
+    const dot = document.createElement('button');
+    dot.type = 'button';
     dot.className = 'step-dot' + (i === 0 ? ' active' : '');
     dot.dataset.step = i;
+    dot.setAttribute('aria-label', `Go to onboarding step ${i + 1} of ${TOTAL_STEPS}`);
+    if (i === 0) dot.setAttribute('aria-current', 'step');
     dot.addEventListener('click', () => goToStep(i));
     stepDotsContainer.appendChild(dot);
   }
@@ -74,8 +77,13 @@
     const dots = stepDotsContainer.querySelectorAll('.step-dot');
     dots.forEach((dot, i) => {
       dot.classList.remove('active', 'completed');
-      if (i === currentStep) dot.classList.add('active');
-      else if (i < currentStep) dot.classList.add('completed');
+      dot.removeAttribute('aria-current');
+      if (i === currentStep) {
+        dot.classList.add('active');
+        dot.setAttribute('aria-current', 'step');
+      } else if (i < currentStep) {
+        dot.classList.add('completed');
+      }
     });
   }
 
